@@ -15,7 +15,7 @@ int main(int argc, char * argv[])
 	uint upt, tpt;
 	int fd, addrlen, ret, nread, m ,r, port_id, siipi, i;
 	struct sockaddr_in addr;
-	char buffer[128];
+	char buffer1[2048],buffer2[2048],buffer3[2048];
 	struct hostent *h;
 	struct in_addr *a;
 
@@ -25,8 +25,10 @@ int main(int argc, char * argv[])
 		printf("Error fd=socket\n");
 		exit(1);//error
 	}
+
 //Clear addr for use
 	memset((void*)&addr,(int)'\0',sizeof(addr));
+
 //Specify family
 	addr.sin_family=AF_INET;
 	
@@ -39,6 +41,7 @@ int main(int argc, char * argv[])
 			printf("Invalid input: Wrong arguments\n");
 			exit(1);
 		}else{
+
 //If input checks out, start to attribute default input arguments
 			
 			strcpy(name, argv[2]);
@@ -85,7 +88,6 @@ int main(int argc, char * argv[])
 		}
 
 	}
-	printf("%s\n",inet_ntoa(*a));
 	//ERRRO AQUI
 
 	//ret=bind(fd,(struct sockaddr*)&addr,sizeof(addr));
@@ -94,21 +96,45 @@ int main(int argc, char * argv[])
 	//	exit(1);//error
 	//}
 
-	//while(1){
-		addrlen=sizeof(addr);
-		ret=sendto(fd,"GET_SERVERS",12,0,(struct sockaddr*)&addr,addrlen);
-		if(ret==-1){
-			printf("Error ret\n");
-			exit(1);//error
-		}
+	while(1){
+		fgets(buffer1,2048,stdin);
+		
 
-		nread=recvfrom(fd,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
-		if(nread==-1){
-			printf("Error nread\n");
-			exit(1);//error
+		if(strstr(buffer1, "show_servers")!=NULL){
+			addrlen=sizeof(addr);
+			ret=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
+			if(ret==-1){
+				printf("Error ret\n");
+				exit(1);//error
+			}
+			nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
+			if(nread==-1){
+				printf("Error nread\n");
+				exit(1);//error
+			}
+			printf("%s\n",buffer2 );
 		}
-		printf("%s\n",buffer );
-	//}
+		
+
+		if(strstr(buffer1, "exit")!=NULL){
+				printf("Program exited successfully\n");
+				exit(0);
+		}
+		
+
+		if(strstr(buffer1, "join")!=NULL){
+			addrlen=sizeof(addr);
+			sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
+			
+			ret=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+			if(ret==-1){
+				printf("Error ret\n");
+				exit(1);//error
+			}
+		}
+	
+
+	}
 	
 close(fd);
 exit(0);
