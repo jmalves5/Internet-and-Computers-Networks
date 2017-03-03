@@ -29,7 +29,7 @@ int main(int argc, char * argv[])
 	memset((void*)&addr,(int)'\0',sizeof(addr));
 //Specify family
 	addr.sin_family=AF_INET;
-
+	
 //Begin to separate input arguments. With or whitout optional input arguments.
 	if((argc < 9)){
 		printf("Invalid input: Not enough arguments\n");
@@ -66,7 +66,9 @@ int main(int argc, char * argv[])
 		}
 	}
 //If optional input arguments are given by the user, utilise them
-	for(i=0;i=argc;i++){
+	
+	for(i=0;i<=argc-1;i++){
+		
 		if(strcmp(argv[i],"-i")==0){
 			siipi=atoi(argv[i+1]);
 			addr.sin_addr.s_addr=htonl(siipi);
@@ -83,28 +85,30 @@ int main(int argc, char * argv[])
 		}
 
 	}
+	printf("%s\n",inet_ntoa(*a));
+	//ERRRO AQUI
 
-	//PAREI AQUI 3/3/17
+	//ret=bind(fd,(struct sockaddr*)&addr,sizeof(addr));
+	//if(ret==-1){
+	//	printf("Error ret=bind\n");
+	//	exit(1);//error
+	//}
 
-	ret=bind(fd,(struct sockaddr*)&addr,sizeof(addr));
-	if(ret==-1){
-		printf("Error ret=bind\n");
-		exit(1);//error
-	}
-
-	while(1){
+	//while(1){
 		addrlen=sizeof(addr);
-		nread=recvfrom(fd,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
-		if(nread==1){
-			printf("Error nread\n");
-			exit(1);//error
-		}
-		ret=sendto(fd,buffer,nread,0,(struct sockaddr*)&addr,addrlen);
+		ret=sendto(fd,"GET_SERVERS",12,0,(struct sockaddr*)&addr,addrlen);
 		if(ret==-1){
 			printf("Error ret\n");
 			exit(1);//error
 		}
-	}
+
+		nread=recvfrom(fd,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
+		if(nread==-1){
+			printf("Error nread\n");
+			exit(1);//error
+		}
+		printf("%s\n",buffer );
+	//}
 	
 close(fd);
 exit(0);
