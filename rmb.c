@@ -11,16 +11,16 @@
 int main(int argc, char * argv[]){
 
 	char siip[20], sipt[20];
-	int fd1, fd2, n, i, port_id, siipi, addrlen, ret, nread;
+	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, nread;
 	struct sockaddr_in addr1, addr2;
 	char buffer1[2048],buffer2[2048],buffer3[2048];
 	struct hostent *h;
 	struct in_addr *a;
 
 
-	fd1=socket(AF_INET,SOCK_DGRAM,0);
-	fd2=socket(AF_INET,SOCK_DGRAM,0);
-	if(fd1==-1||fd2==-1){
+	fdi=socket(AF_INET,SOCK_DGRAM,0);
+	fdm=socket(AF_INET,SOCK_DGRAM,0);
+	if(fdi==-1||fdm==-1){
 		exit(1);
 	};
 
@@ -39,8 +39,7 @@ int main(int argc, char * argv[]){
 	addr1.sin_family=AF_INET;
 	addr1.sin_addr=*(struct in_addr*) h->h_addr_list[0];
 	addr1.sin_port=htons(59000);
-	printf("%s\n",inet_ntoa(addr1.sin_addr));
-
+	
  //If optional input arguments are given by the user, utilise them
 
 	for(i=0;i<=argc-1;i++){
@@ -59,19 +58,21 @@ int main(int argc, char * argv[]){
 
 //Get message servers names to connect
 	addrlen=sizeof(addr1);
-	ret=sendto(fd1,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
+	ret=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
 	if(ret==-1){
 		printf("Error ret 1\n");
 		exit(1);//error
 	}
-	nread=recvfrom(fd1,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
+	nread=recvfrom(fdi,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
 	if(nread==-1){
 		printf("Error nread 1\n");
 		exit(1);//error
 	}
 	printf("%s\n",buffer2 );
 
-	
+
+
+
 	
 
 //User interface
@@ -82,12 +83,12 @@ int main(int argc, char * argv[]){
 
 		if(strstr(buffer1, "show_servers")!=NULL){
 			addrlen=sizeof(addr1);
-			ret=sendto(fd1,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
+			ret=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
 			if(ret==-1){
 				printf("Error ret\n");
 				exit(1);//error
 			}
-			nread=recvfrom(fd1,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
+			nread=recvfrom(fdi,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
 			if(nread==-1){
 				printf("Error nread\n");
 				exit(1);//error
@@ -102,8 +103,8 @@ int main(int argc, char * argv[]){
 		}
 	}
 
-close(fd1);
-close(fd2);
+close(fdi);
+close(fdm);
 exit(0);
 
 }
