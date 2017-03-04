@@ -13,7 +13,7 @@ int main(int argc, char * argv[]){
 	char siip[20], sipt[20];
 	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, nread;
 	struct sockaddr_in addr1, addr2;
-	char buffer1[2048],buffer2[2048],buffer3[2048];
+	char buffer1[2048],buffer2[2048],buffer3[2048], ip_ch[128], ip_ch_b[128], ip_ch_e[128];
 	struct hostent *h;
 	struct in_addr *a;
 
@@ -68,9 +68,13 @@ int main(int argc, char * argv[]){
 		printf("Error nread 1\n");
 		exit(1);//error
 	}
-	printf("%s\n",buffer2 );
+	//printf("%s\n",buffer2 );
 
 
+ip_ch_b=strchr(buffer2,";");
+ip_ch_e=strchr(ip_ch_b,";");
+strncpy(ip_ch, ip_ch_b, ip_ch_e);
+printf("%s\n",ip_ch );
 
 
 	
