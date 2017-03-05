@@ -11,11 +11,16 @@
 int main(int argc, char * argv[]){
 
 	char siip[20], sipt[20];
-	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, nread;
+	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, nread, pub, count, ip,port;
 	struct sockaddr_in addr1, addr2;
-	char buffer1[2048],buffer2[2048],buffer3[2048], ip_ch[128], ip_ch_b[128], ip_ch_e[128];
+	char buffer1[2048],buffer2[2048],buffer3[2048], *b,*m, *e;
+	char colon=';';
+	char ms_ip[128],ms_uport[128];
+	char message[140];
 	struct hostent *h;
 	struct in_addr *a;
+	struct in_addr *a2;
+
 
 
 	fdi=socket(AF_INET,SOCK_DGRAM,0);
@@ -60,30 +65,50 @@ int main(int argc, char * argv[]){
 	addrlen=sizeof(addr1);
 	ret=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
 	if(ret==-1){
-		printf("Error ret 1\n");
+		printf("Error ret 2\n");
 		exit(1);//error
 	}
 	nread=recvfrom(fdi,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
 	if(nread==-1){
-		printf("Error nread 1\n");
+		printf("Error nread 2\n");
 		exit(1);//error
 	}
-	//printf("%s\n",buffer2 );
+	
+//Message server attribution
+	b=strchr(buffer2,';');
+	if(b==NULL){
+		printf("no message servers available\n");
 
+		exit(0);
+	}
+	m=strchr(b+1,';');
+	e=strchr(m+1,';');
 
-ip_ch_b=strchr(buffer2,";");
-ip_ch_e=strchr(ip_ch_b,";");
-strncpy(ip_ch, ip_ch_b, ip_ch_e);
-printf("%s\n",ip_ch );
-
+	strncpy(ms_ip,b+1, m-b-1);
+	strncpy(ms_uport, m+1, e-m-1);
 
 	
+	port=atoi(ms_uport);
+	printf("%d\n", port);
+
+	memset((void*)&addr2,(int)'\0',sizeof(addr2));
+	addr2.sin_family=AF_INET;
+	inet_pton(AF_INET,ms_ip,&(addr2.sin_addr));
+	addr2.sin_port=htons(port);
+
+	inet_ntop(AF_INET,&(addr2.sin_addr),ms_ip,INET_ADDRSTRLEN);
+	printf("%s\n",ms_ip);
+
 
 //User interface
+
 	while(1){
 
 		fgets(buffer1,2048,stdin);
 		
+
+
+//Implementing the user's commands
 
 		if(strstr(buffer1, "show_servers")!=NULL){
 			addrlen=sizeof(addr1);
@@ -97,10 +122,20 @@ printf("%s\n",ip_ch );
 				printf("Error nread\n");
 				exit(1);//error
 			}
-			printf("%s\n",buffer2 );
+			printf("%s\n",buffer2);
+		}
+
+		if(strstr(buffer1, "publish")!=NULL){
+			strcpy(message,strstr(buffer1," "));
+			pub=sendto(fdm,message,140,0,(struct sockaddr*)&addr2,addrlen);
+			exit(1);
+			if(pub==-1){
+				printf("Error pub\n");
+				exit(1);
+			}
 		}
 		
-
+	
 		if(strstr(buffer1, "exit")!=NULL){
 				printf("Program exited successfully\n");
 				exit(0);
