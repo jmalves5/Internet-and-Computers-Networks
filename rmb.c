@@ -128,7 +128,8 @@ int main(int argc, char * argv[]){
 		if(strstr(buffer1, "publish")!=NULL){
 			strcpy(message,strstr(buffer1," "));
 			pub=sendto(fdm,message,140,0,(struct sockaddr*)&addr2,addrlen);
-			exit(1);
+
+			
 			if(pub==-1){
 				printf("Error pub\n");
 				exit(1);
@@ -137,8 +138,10 @@ int main(int argc, char * argv[]){
 		
 	
 		if(strstr(buffer1, "exit")!=NULL){
-				printf("Program exited successfully\n");
-				exit(0);
+			close(fdi);
+			close(fdm);
+			printf("Program exited successfully\n");
+			exit(0);
 		}
 	}
 

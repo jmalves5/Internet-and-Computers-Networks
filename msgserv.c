@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -13,11 +15,12 @@ int main(int argc, char * argv[])
 
 	char name[100], ip[20], siip[20], sipt[20];
 	uint upt, tpt;
-	int fd, addrlen, ret, nread, m ,r, port_id, siipi, i;
-	struct sockaddr_in addr;
-	char buffer1[2048],buffer2[2048],buffer3[2048];
+	int fd, fd2, addrlen, addrlen2, ret, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0;
+	struct sockaddr_in addr, addr2;
+	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
 	struct hostent *h;
 	struct in_addr *a;
+	fd_set readfds;
 
 //Open UDP socket
 	fd=socket(AF_INET,SOCK_DGRAM,0);
@@ -25,12 +28,22 @@ int main(int argc, char * argv[])
 		printf("Error fd=socket\n");
 		exit(1);//error
 	}
+	fd2=socket(AF_INET,SOCK_DGRAM,0);
+	if(fd==-1){
+		printf("Error fd2=socket\n");
+		exit(1);//error
+	}
 
 //Clear addr for use
 	memset((void*)&addr,(int)'\0',sizeof(addr));
+	memset((void*)&addr2,(int)'\0',sizeof(addr2));
 
 //Specify family
 	addr.sin_family=AF_INET;
+	addr2.sin_family=AF_INET;
+//Prepare UDP with terminals
+	addr2.sin_addr.s_addr=htonl(INADDR_ANY);
+
 	
 //Begin to separate input arguments. With or whitout optional input arguments.
 	if((argc < 9)){
@@ -88,54 +101,76 @@ int main(int argc, char * argv[])
 		}
 
 	}
-	//ERRRO AQUI
+	//Bind the UDP server
+	addr2.sin_port=htons(upt);
+	ret=bind(fd2,(struct sockaddr*)&addr2,sizeof(addr2));
+	if(ret==-1){
+		printf("Error ret=bind\n");
+		exit(1);//error
+	}
 
-	//ret=bind(fd,(struct sockaddr*)&addr,sizeof(addr));
-	//if(ret==-1){
-	//	printf("Error ret=bind\n");
-	//	exit(1);//error
-	//}
 
+//Start user interface
 	while(1){
-		fgets(buffer1,2048,stdin);
 		
-
-		if(strstr(buffer1, "show_servers")!=NULL){
-			addrlen=sizeof(addr);
-			ret=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
-			if(ret==-1){
-				printf("Error ret\n");
-				exit(1);//error
-			}
-			nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
-			if(nread==-1){
-				printf("Error nread\n");
-				exit(1);//error
-			}
-			printf("%s\n",buffer2 );
+		FD_ZERO(&readfds);
+		FD_SET(0, &readfds);
+		FD_SET(fd, &readfds);
+		FD_SET(fd2, &readfds);
+		
+		maxfd=fd;
+		if(fd2>fd){
+			maxfd=fd2;
 		}
 		
+		select(maxfd+1, &readfds, NULL, NULL, NULL);
+		
+		if(FD_ISSET(0, &readfds)!=0){
+			fgets(buffer1,2048,stdin);
 
-		if(strstr(buffer1, "exit")!=NULL){
-				printf("Program exited successfully\n");
-				exit(0);
-		}
+			if(strstr(buffer1, "show_servers")!=NULL){
+				addrlen=sizeof(addr);
+				ret=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
+				if(ret==-1){
+					printf("Error ret\n");
+					exit(1);//error
+				}
+				nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
+				if(nread==-1){
+					printf("Error nread\n");
+				exit(1);//error
+				}
+				printf("%s\n",buffer2 );
+			}
 		
 
-		if(strstr(buffer1, "join")!=NULL){
-			addrlen=sizeof(addr);
-			sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
+			if(strstr(buffer1, "exit")!=NULL){
+					printf("Program exited successfully\n");
+					close(fd);
+					close(fd2);
+					exit(0);
+			}
+		
+
+			if(strstr(buffer1, "join")!=NULL){
+				addrlen=sizeof(addr);
+				sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
 			
-			ret=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
-			if(ret==-1){
-				printf("Error ret\n");
-				exit(1);//error
+				ret=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+				if(ret==-1){
+					printf("Error ret\n");
+					exit(1);//error
+				}
 			}
+		}else if(FD_ISSET(fd2, &readfds)!=0){
+			addrlen2=sizeof(addr2);
+			nread1=recvfrom(fd2,buffer4,2048,0,(struct sockaddr*)&addr2,&addrlen2);
+			printf("%s", buffer4);
 		}
 	
 
 	}
 	
-close(fd);
+
 exit(0);
 }
