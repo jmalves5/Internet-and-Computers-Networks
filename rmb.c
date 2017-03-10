@@ -89,7 +89,7 @@ int main(int argc, char * argv[]){
 
 	
 	port=atoi(ms_uport);
-	printf("%d\n", port);
+
 
 	memset((void*)&addr2,(int)'\0',sizeof(addr2));
 	addr2.sin_family=AF_INET;
@@ -97,8 +97,7 @@ int main(int argc, char * argv[]){
 	addr2.sin_port=htons(port);
 
 	inet_ntop(AF_INET,&(addr2.sin_addr),ms_ip,INET_ADDRSTRLEN);
-	printf("%s\n",ms_ip);
-
+	
 
 //User interface
 
@@ -125,6 +124,8 @@ int main(int argc, char * argv[]){
 			printf("%s\n",buffer2);
 		}
 
+
+
 		if(strstr(buffer1, "publish")!=NULL){
 			strcpy(message,strstr(buffer1," "));
 			pub=sendto(fdm,message,140,0,(struct sockaddr*)&addr2,addrlen);
@@ -135,12 +136,18 @@ int main(int argc, char * argv[]){
 				exit(1);
 			}
 		}
-		
+		if(strstr(buffer1, "pray")!=NULL){
+			printf("\n");
+			printf("\n");
+			printf("\n");
+			printf("\n");
+			exit(0);
+		}
 	
 		if(strstr(buffer1, "exit")!=NULL){
 			close(fdi);
 			close(fdm);
-			printf("Program exited successfully\n");
+			printf("Application exited successfully\n");
 			exit(0);
 		}
 	}

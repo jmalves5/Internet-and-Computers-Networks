@@ -9,18 +9,50 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <time.h>
+
+
+
+
+typedef struct svmessage{
+	char* string_message[140];
+	int tmessage;
+	struct svmessage * next;
+	
+}svmessage;
+
+void insertList(struct svmessage* head, char* message, int time)
+{
+	struct svmessage * aux1 = (struct svmessage*)malloc(sizeof(struct svmessage));
+	struct svmessage * aux2 = (struct svmessage*)malloc(sizeof(struct svmessage));
+    
+    aux1->tmessage=time;
+    strcpy((char*)aux1->string_message,message);
+    
+    aux2=head;
+    while(aux2->next!=NULL){
+    	aux2=aux2->next;
+    }
+    aux2->next=aux1;
+    aux1->next=NULL;
+    free(aux1);
+}
+
 
 int main(int argc, char * argv[])
 {
 
-	char name[100], ip[20], siip[20], sipt[20];
+	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024];
 	uint upt, tpt;
-	int fd, fd2, addrlen, addrlen2, ret, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0;
+	time_t time1=0, time2=0;
+	int fd, fd2, addrlen, addrlen2, ret_identity, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0;
 	struct sockaddr_in addr, addr2;
 	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
+	svmessage * head = (struct svmessage*)malloc(sizeof(struct svmessage));
+	svmessage * aux;
 
 //Open UDP socket
 	fd=socket(AF_INET,SOCK_DGRAM,0);
@@ -101,18 +133,33 @@ int main(int argc, char * argv[])
 		}
 
 	}
-	//Bind the UDP server
+	//Bind the UDP server port to the terminals
 	addr2.sin_port=htons(upt);
-	ret=bind(fd2,(struct sockaddr*)&addr2,sizeof(addr2));
-	if(ret==-1){
-		printf("Error ret=bind\n");
+	ret_terminal=bind(fd2,(struct sockaddr*)&addr2,sizeof(addr2));
+	if(ret_terminal==-1){
+		printf("Error ret_terminal=bind\n");
 		exit(1);//error
 	}
 
 
 //Start user interface
 	while(1){
-		
+		if(time1>0){
+			time2=time(NULL);
+			if(time2-time1>r){
+				addrlen=sizeof(addr);
+					sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
+			
+					ret_identity=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+					if(ret_identity==-1){
+						printf("Error ret_identity join\n");
+						exit(1);//error
+					}
+
+			}
+		}
+
+
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
 		FD_SET(fd, &readfds);
@@ -122,55 +169,67 @@ int main(int argc, char * argv[])
 		if(fd2>fd){
 			maxfd=fd2;
 		}
-		
+			
 		select(maxfd+1, &readfds, NULL, NULL, NULL);
 		
 		if(FD_ISSET(0, &readfds)!=0){
 			fgets(buffer1,2048,stdin);
-
-			if(strstr(buffer1, "show_servers")!=NULL){
+			sscanf(buffer1,"%s", instruction);
+			if(strcmp(instruction, "show_messages")==0){
+				aux = head;
+      			do{
+      				printf("%s\n", (char*)aux->string_message);
+        			aux = aux->next;
+      			} while (aux != NULL);	
+      			
+    			
+			}else if(strcmp(instruction, "show_servers")==0){
 				addrlen=sizeof(addr);
-				ret=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
-				if(ret==-1){
-					printf("Error ret\n");
+				ret_identity=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
+				if(ret_identity==-1){
+					printf("Error ret_identity get servers\n");
 					exit(1);//error
 				}
 				nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
 				if(nread==-1){
-					printf("Error nread\n");
+					printf("Error rcvfrom show_servers\n");
 				exit(1);//error
 				}
-				printf("%s\n",buffer2 );
-			}
-		
-
-			if(strstr(buffer1, "exit")!=NULL){
+				sscanf(buffer2,"%s", protocol_message);
+				printf("%s\n",protocol_message);
+			}else if(strcmp(instruction, "exit")==0){
 					printf("Program exited successfully\n");
 					close(fd);
 					close(fd2);
 					exit(0);
-			}
-		
-
-			if(strstr(buffer1, "join")!=NULL){
+			}else if(strcmp(instruction, "join")==0){
 				addrlen=sizeof(addr);
 				sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
 			
-				ret=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
-				if(ret==-1){
-					printf("Error ret\n");
+				ret_identity=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+				if(ret_identity==-1){
+					printf("Error ret_identity join\n");
 					exit(1);//error
 				}
+				time1=time(NULL);
+			}else{
+				printf("Command not reconized\n");
 			}
 		}else if(FD_ISSET(fd2, &readfds)!=0){
 			addrlen2=sizeof(addr2);
 			nread1=recvfrom(fd2,buffer4,2048,0,(struct sockaddr*)&addr2,&addrlen2);
-			printf("%s", buffer4);
+			if(nread1==-1){
+					printf("Error rcvfrom message\n");
+				exit(1);//error
+				}
+			logic_time++;
+			sscanf(buffer4,"%s", protocol_message);
+			insertList(head, protocol_message, logic_time);
 		}
 	
 
 	}
 	
-
+free(head);
 exit(0);
 }
