@@ -32,7 +32,7 @@ int main(int argc, char * argv[]){
 
 //If input checks out, start to attribute default input arguments
 		
-	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
+	h=gethostbyname("ubuntu");		
 	if(h==NULL){
 		printf("Error getting siip\n");
 		exit(1);
@@ -129,20 +129,12 @@ int main(int argc, char * argv[]){
 		if(strstr(buffer1, "publish")!=NULL){
 			strcpy(message,strstr(buffer1," "));
 			pub=sendto(fdm,message,140,0,(struct sockaddr*)&addr2,addrlen);
-
-			
 			if(pub==-1){
 				printf("Error pub\n");
 				exit(1);
 			}
 		}
-		if(strstr(buffer1, "pray")!=NULL){
-			printf("\n");
-			printf("\n");
-			printf("\n");
-			printf("\n");
-			exit(0);
-		}
+		
 	
 		if(strstr(buffer1, "exit")!=NULL){
 			close(fdi);

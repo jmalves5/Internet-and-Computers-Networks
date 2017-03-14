@@ -12,47 +12,31 @@
 #include <time.h>
 
 
-
-
 typedef struct svmessage{
-	char* string_message[140];
+	char string_message[140];
 	int tmessage;
-	struct svmessage * next;
-	
 }svmessage;
 
-void insertList(struct svmessage* head, char* message, int time)
-{
-	struct svmessage * aux1 = (struct svmessage*)malloc(sizeof(struct svmessage));
-	struct svmessage * aux2 = (struct svmessage*)malloc(sizeof(struct svmessage));
-    
-    aux1->tmessage=time;
-    strcpy((char*)aux1->string_message,message);
-    
-    aux2=head;
-    while(aux2->next!=NULL){
-    	aux2=aux2->next;
-    }
-    aux2->next=aux1;
-    aux1->next=NULL;
-    free(aux1);
+void insertmessage(struct svmessage* m_vector, char* message, int time, int n_messages)
+{   
+    strcpy(m_vector[n_messages].string_message, message);
+    m_vector[n_messages].tmessage=time;
+    n_messages++;
 }
 
 
 int main(int argc, char * argv[])
 {
-
-	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024];
+	struct svmessage m_vector[2048];
+	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], message[140];
 	uint upt, tpt;
 	time_t time1=0, time2=0;
-	int fd, fd2, addrlen, addrlen2, ret_identity, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0;
+	int fd, fd2, addrlen, addrlen2, ret_identity, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0;
 	struct sockaddr_in addr, addr2;
 	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
-	svmessage * head = (struct svmessage*)malloc(sizeof(struct svmessage));
-	svmessage * aux;
 
 //Open UDP socket
 	fd=socket(AF_INET,SOCK_DGRAM,0);
@@ -94,7 +78,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("tejo.tecnico.ulisboa.pt");
+			h=gethostbyname("ubuntu");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -176,13 +160,9 @@ int main(int argc, char * argv[])
 			fgets(buffer1,2048,stdin);
 			sscanf(buffer1,"%s", instruction);
 			if(strcmp(instruction, "show_messages")==0){
-				aux = head;
-      			do{
-      				printf("%s\n", (char*)aux->string_message);
-        			aux = aux->next;
-      			} while (aux != NULL);	
-      			
-    			
+    			for(i=0;i=n_messages;i++){
+    				printf("%s\n", m_vector[i].string_message);
+    			}
 			}else if(strcmp(instruction, "show_servers")==0){
 				addrlen=sizeof(addr);
 				ret_identity=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
@@ -224,12 +204,13 @@ int main(int argc, char * argv[])
 				}
 			logic_time++;
 			sscanf(buffer4,"%s", protocol_message);
-			insertList(head, protocol_message, logic_time);
+			insertmessage(m_vector, protocol_message, logic_time, n_messages);
+    		printf("%s\n", m_vector[n_messages].string_message );
 		}
 	
 
 	}
 	
-free(head);
+free(m_vector);
 exit(0);
 }
