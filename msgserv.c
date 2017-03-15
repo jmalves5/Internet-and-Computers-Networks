@@ -28,15 +28,16 @@ void insertmessage(struct svmessage* m_vector, char* message, int time, int n_me
 int main(int argc, char * argv[])
 {
 	struct svmessage m_vector[2048];
-	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], message[140];
+	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140];
 	uint upt, tpt;
 	time_t time1=0, time2=0;
-	int fd, fd2, addrlen, addrlen2, ret_identity, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0;
+	int fd, fd2, addrlen, addrlen2, ret_identity, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset;
 	struct sockaddr_in addr, addr2;
 	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
+	char* token;
 
 //Open UDP socket
 	fd=socket(AF_INET,SOCK_DGRAM,0);
@@ -78,7 +79,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("tejo.tecnico.ulisboa.pt");
+			h=gethostbyname("ubuntu");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -125,21 +126,18 @@ int main(int argc, char * argv[])
 		exit(1);//error
 	}
 
-
+	time1=time(NULL);
 //Start user interface
 	while(1){
-		if(time1>0){
-			time2=time(NULL);
-			if(time2-time1>r){
-				addrlen=sizeof(addr);
-					sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
-			
-					ret_identity=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
-					if(ret_identity==-1){
-						printf("Error ret_identity join\n");
-						exit(1);//error
-					}
-
+		time2=time(NULL);
+		if(time2-time1>r){
+			time1=time(NULL);
+			addrlen=sizeof(addr);
+			sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
+			ret_identity=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+			if(ret_identity==-1){
+				printf("Error ret_identity join\n");
+				exit(1);//error	
 			}
 		}
 
@@ -159,7 +157,7 @@ int main(int argc, char * argv[])
 		if(FD_ISSET(0, &readfds)!=0){
 			fgets(buffer1,2048,stdin);
 			sscanf(buffer1,"%s", instruction);
-			if(strcmp(instruction, "show_messages")==0){
+			if(strcmp(instruction, "show_messages")==0){							//DEU MERDA! ARRANJAR
     			for(i=0;i=n_messages;i++){
     				printf("%s\n", m_vector[i].string_message);
     			}
@@ -175,8 +173,8 @@ int main(int argc, char * argv[])
 					printf("Error rcvfrom show_servers\n");
 				exit(1);//error
 				}
-				sscanf(buffer2,"%s", protocol_message);
-				printf("%s\n",protocol_message);
+				printf("%s\n",buffer2);
+
 			}else if(strcmp(instruction, "exit")==0){
 					printf("Program exited successfully\n");
 					close(fd);
@@ -193,7 +191,8 @@ int main(int argc, char * argv[])
 				}
 				time1=time(NULL);
 			}else{
-				printf("Command not reconized\n");
+				printf("Command not recognized\n");
+				exit(0);
 			}
 		}else if(FD_ISSET(fd2, &readfds)!=0){
 			addrlen2=sizeof(addr2);
@@ -202,10 +201,23 @@ int main(int argc, char * argv[])
 					printf("Error rcvfrom message\n");
 				exit(1);//error
 				}
-			logic_time++;
-			sscanf(buffer4,"%s", protocol_message);
-			insertmessage(m_vector, protocol_message, logic_time, n_messages);
-    		printf("%s\n", m_vector[n_messages].string_message );
+			token=strtok(buffer4, " ");
+			if(strcmp(token, "PUBLISH")==0){
+				offset=0;
+				token=strtok(NULL, " ");
+				while(token!=NULL){
+					len_token=strlen(token);
+					strcpy(protocol_message+offset, token);
+					protocol_message[offset+len_token]=' ';
+					offset+=len_token+1;
+					token=strtok(NULL, " ");
+				}
+
+
+				insertmessage(m_vector, protocol_message, logic_time, n_messages);
+    			printf("%s\n", m_vector[n_messages].string_message );
+    			n_messages++;
+    		}
 		}
 	
 

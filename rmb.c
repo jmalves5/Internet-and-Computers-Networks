@@ -11,12 +11,13 @@
 int main(int argc, char * argv[]){
 
 	char siip[20], sipt[20];
-	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, nread, pub, count, ip,port;
+	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, ret_identity, nread, pub, count, ip,port;
 	struct sockaddr_in addr1, addr2;
 	char buffer1[2048],buffer2[2048],buffer3[2048], *b,*m, *e;
 	char colon=';';
 	char ms_ip[128],ms_uport[128];
 	char message[140];
+	char instruction[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	struct in_addr *a2;
@@ -32,7 +33,7 @@ int main(int argc, char * argv[]){
 
 //If input checks out, start to attribute default input arguments
 		
-	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
+	h=gethostbyname("ubuntu");		
 	if(h==NULL){
 		printf("Error getting siip\n");
 		exit(1);
@@ -104,14 +105,12 @@ int main(int argc, char * argv[]){
 	while(1){
 
 		fgets(buffer1,2048,stdin);
-		
-
-
+		sscanf(buffer1,"%s", instruction);
 //Implementing the user's commands
 
-		if(strstr(buffer1, "show_servers")!=NULL){
+		if(strcmp(instruction, "show_servers")==0){
 			addrlen=sizeof(addr1);
-			ret=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
+			ret_identity=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
 			if(ret==-1){
 				printf("Error ret\n");
 				exit(1);//error
@@ -126,10 +125,9 @@ int main(int argc, char * argv[]){
 
 
 
-		if(strstr(buffer1, "publish")!=NULL){
+		if(strcmp(instruction, "publish")==0){
 			for(i=0;i!=7;i++){
 				buffer1[i]=toupper(buffer1[i]);
-
 			}
 			strcpy(message,buffer1);
 			pub=sendto(fdm,message,140,0,(struct sockaddr*)&addr2,addrlen);
@@ -140,7 +138,7 @@ int main(int argc, char * argv[]){
 		}
 		
 	
-		if(strstr(buffer1, "exit")!=NULL){
+		if(strcmp(instruction, "exit")==0){
 			close(fdi);
 			close(fdm);
 			printf("Application exited successfully\n");
