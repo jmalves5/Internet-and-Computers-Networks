@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("ubuntu");
+			h=gethostbyname("tejo.tecnico.ulisboa.pt");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
