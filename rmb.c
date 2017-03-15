@@ -33,7 +33,7 @@ int main(int argc, char * argv[]){
 
 //If input checks out, start to attribute default input arguments
 		
-	h=gethostbyname("ubuntu");		
+	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
 	if(h==NULL){
 		printf("Error getting siip\n");
 		exit(1);
@@ -78,9 +78,7 @@ int main(int argc, char * argv[]){
 //Message server attribution
 	b=strchr(buffer2,';');
 	if(b==NULL){
-		printf("no message servers available\n");
-
-		exit(0);
+		printf("No message servers available at this time\n");
 	}
 	m=strchr(b+1,';');
 	e=strchr(m+1,';');

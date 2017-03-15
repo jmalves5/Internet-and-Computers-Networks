@@ -28,16 +28,18 @@ void insertmessage(struct svmessage* m_vector, char* message, int time, int n_me
 int main(int argc, char * argv[])
 {
 	struct svmessage m_vector[2048];
-	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140];
-	uint upt, tpt;
+	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140], name_tcp[100];
+	uint upt, tpt, upt_tcp, tpt_tcp;
+	uint32_t ip_tcp;
 	time_t time1=0, time2=0;
-	int fd, fd2, addrlen, addrlen2, ret_identity, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset;
-	struct sockaddr_in addr, addr2;
+	int fd, fd2, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset;
+	struct sockaddr_in addr, addr2, addr3;
 	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
 	char* token;
+
 
 //Open UDP socket
 	fd=socket(AF_INET,SOCK_DGRAM,0);
@@ -50,7 +52,7 @@ int main(int argc, char * argv[])
 		printf("Error fd2=socket\n");
 		exit(1);//error
 	}
-
+	
 //Clear addr for use
 	memset((void*)&addr,(int)'\0',sizeof(addr));
 	memset((void*)&addr2,(int)'\0',sizeof(addr2));
@@ -58,6 +60,7 @@ int main(int argc, char * argv[])
 //Specify family
 	addr.sin_family=AF_INET;
 	addr2.sin_family=AF_INET;
+	addr3.sin_family=AF_INET;
 //Prepare UDP with terminals
 	addr2.sin_addr.s_addr=htonl(INADDR_ANY);
 
@@ -79,7 +82,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("ubuntu");
+			h=gethostbyname("tejo.tecnico.ulisboa.pt");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -126,6 +129,41 @@ int main(int argc, char * argv[])
 		exit(1);//error
 	}
 
+	//Get message servers to form the list for the TCP connections WORK IN PROGRESS
+	/*
+	addrlen=sizeof(addr);
+	ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
+	if(ret_identity2==-1){
+		printf("Error ret_identity2 get servers\n");
+		exit(1);//error
+	}
+	nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
+	if(nread==-1){
+		printf("Error rcvfrom show_servers\n");
+		exit(1);//error
+	}
+
+	printf("%s\n",buffer2);
+	if(buffer2+81!=NULL){
+		
+		token=strtok(buffer2+8, ";");
+		strcpy(name_tcp, token);
+		printf("%s\n", name_tcp);
+		
+		token=strtok(NULL, ";");	
+		ip_tcp=inet_pton(AF_INET,token, &(addr3.sin_addr));
+		printf("%d\n",ip_tcp);
+	
+		token=strtok(NULL, ";");
+		upt_tcp=atoi((char*)token);
+		printf("%d\n", upt_tcp);
+	
+		token=strtok(NULL, ";");
+		tpt_tcp=atoi((char*)token);
+		printf("%d\n", tpt_tcp);
+	}
+*/
+//Get time at beggining of the application
 	time1=time(NULL);
 //Start user interface
 	while(1){
@@ -134,13 +172,13 @@ int main(int argc, char * argv[])
 			time1=time(NULL);
 			addrlen=sizeof(addr);
 			sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
-			ret_identity=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
-			if(ret_identity==-1){
-				printf("Error ret_identity join\n");
+			ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+			if(ret_identity1==-1){
+				printf("Error ret_identity1 join\n");
 				exit(1);//error	
 			}
 		}
-
+//Set the file descriptors
 
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
@@ -151,21 +189,21 @@ int main(int argc, char * argv[])
 		if(fd2>fd){
 			maxfd=fd2;
 		}
-			
+//Select function. Checks which file descriptor is active			
 		select(maxfd+1, &readfds, NULL, NULL, NULL);
-		
+//If stdin (0) is active read and choose what to do		
 		if(FD_ISSET(0, &readfds)!=0){
 			fgets(buffer1,2048,stdin);
 			sscanf(buffer1,"%s", instruction);
-			if(strcmp(instruction, "show_messages")==0){							//DEU MERDA! ARRANJAR
-    			for(i=0;i=n_messages;i++){
+			if(strcmp(instruction, "show_messages")==0){							
+    			for(i=0;i!=n_messages;i++){
     				printf("%s\n", m_vector[i].string_message);
     			}
 			}else if(strcmp(instruction, "show_servers")==0){
 				addrlen=sizeof(addr);
-				ret_identity=sendto(fd,"GET_SERVERS",2048,0,(struct sockaddr*)&addr,addrlen);
-				if(ret_identity==-1){
-					printf("Error ret_identity get servers\n");
+				ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
+				if(ret_identity2==-1){
+					printf("Error ret_identity2 get servers\n");
 					exit(1);//error
 				}
 				nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
@@ -184,8 +222,8 @@ int main(int argc, char * argv[])
 				addrlen=sizeof(addr);
 				sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
 			
-				ret_identity=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
-				if(ret_identity==-1){
+				ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+				if(ret_identity1==-1){
 					printf("Error ret_identity join\n");
 					exit(1);//error
 				}
@@ -194,6 +232,7 @@ int main(int argc, char * argv[])
 				printf("Command not recognized\n");
 				exit(0);
 			}
+//If terminal file descriptor is active, read and choose what to do
 		}else if(FD_ISSET(fd2, &readfds)!=0){
 			addrlen2=sizeof(addr2);
 			nread1=recvfrom(fd2,buffer4,2048,0,(struct sockaddr*)&addr2,&addrlen2);
@@ -213,9 +252,8 @@ int main(int argc, char * argv[])
 					token=strtok(NULL, " ");
 				}
 
-
+//Insert message read into the message vector m_vector
 				insertmessage(m_vector, protocol_message, logic_time, n_messages);
-    			printf("%s\n", m_vector[n_messages].string_message );
     			n_messages++;
     		}
 		}
