@@ -59,6 +59,7 @@ void insertList(node *current, char *name, char *ip, int upt, int tpt) {
    	current->next=link;
 
    	current=link;
+   	free(link);
 }
 
 void printList(node* head){
@@ -176,7 +177,7 @@ int main(int argc, char * argv[])
 	}
 
 	//Get message servers to form the list for the TCP connections WORK IN PROGRESS
-	/*
+	
 	addrlen=sizeof(addr);
 	ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
 	if(ret_identity2==-1){
@@ -191,36 +192,42 @@ int main(int argc, char * argv[])
 
 	printf("%s\n",buffer2);
 	//Get all the servers
-	if(buffer2+8!=NULL){
+	
 		
-		token=strtok(buffer2+8, ";");
+	token=strtok(buffer2+8, ";");
+	if(token!=NULL){
 		name_tcp=(char*) malloc(sizeof(token));
 		strcpy(name_tcp, token);
 		printf("%s\n",name_tcp);
+	
 
-		token=strtok(NULL, ";");	
+		token=strtok(NULL, ";");
+		ip_tcp=(char*)malloc(sizeof(token));	
 		inet_aton(token, &(addr3.sin_addr));
 		ip_tcp=inet_ntoa(addr3.sin_addr);
 		printf("%s\n", ip_tcp);
-		
+	
+
 		token=strtok(NULL, ";");
-		upt_tcp=atoi((char*)token);
+		upt_tcp=atoi(token);
 		printf("%d\n",upt_tcp);
 
 		token=strtok(NULL, ";");
-		tpt_tcp=atoi((char*)token);
-		printf("%d\n",tpt_tcp);
+		tpt_tcp=atoi(token);
+		printf("%d\n",atoi(token));
+		
+		printf("ola amigo");
+
+		if(head==NULL){
+
+			insertFirstList(head, current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+		}else{
+			insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+		}
+		printList(head);
 	}	
+		
 
-	if(ListisEmpty(head)){
-		insertFirstList(head, current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
-	}else{
-		insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
-	}
-
-	printList(head);
-
-*/
 //END THAT SHIT
 
 //Get time at beggining of the application
@@ -291,7 +298,6 @@ int main(int argc, char * argv[])
 				time1=time(NULL);
 			}else{
 				printf("Command not recognized\n");
-				exit(0);
 			}
 //If terminal file descriptor is active, read and choose what to do
 		}else if(FD_ISSET(fd2, &readfds)!=0){
@@ -312,7 +318,7 @@ int main(int argc, char * argv[])
 					offset+=len_token+1;
 					token=strtok(NULL, " ");
 				}
-
+				printf("%s", protocol_message);
 //Insert message read into the message vector m_vector
 				insertmessage(m_vector, protocol_message, logic_time, n_messages);
     			n_messages++;
@@ -322,7 +328,6 @@ int main(int argc, char * argv[])
 
 	}
 	
-free(m_vector);
-free(head);
+
 exit(0);
 }
