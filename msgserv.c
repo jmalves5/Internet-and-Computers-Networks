@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <time.h>
+#include <stdbool.h>
 
 
 typedef struct svmessage{
@@ -24,13 +25,55 @@ void insertmessage(struct svmessage* m_vector, char* message, int time, int n_me
     n_messages++;
 }
 
+typedef struct node {
+   char* name;
+   char* ip;
+   int upt;
+   int tpt;
+   struct node *next;
+}node;
+
+void insertFirstList(node *head, node*current, char *name, char *ip, int upt, int tpt){
+   	head->name = name;
+   	head->ip = ip;
+   	head->upt=upt;
+   	head->tpt=tpt;
+   	head->next = NULL;
+   	current=head;
+}
+
+bool ListisEmpty(node* head) {
+   return head == NULL;
+}
+
+
+void insertList(node *current, char *name, char *ip, int upt, int tpt) {
+	struct node *link = (struct node*) malloc(sizeof(struct node));
+
+   	link->name = name;
+   	link->ip = ip;
+   	link->upt=upt;
+   	link->tpt=tpt;
+
+   	link->next = NULL;
+   	current->next=link;
+
+   	current=link;
+}
+
+void printList(node* head){
+	node* aux=head;
+	while(aux!=NULL){
+		printf("%s %s %d %d",aux->name,aux->ip,aux->upt,aux->tpt);
+		aux=aux->next; 
+	}
+}
 
 int main(int argc, char * argv[])
 {
 	struct svmessage m_vector[2048];
-	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140], name_tcp[100];
+	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140];
 	uint upt, tpt, upt_tcp, tpt_tcp;
-	uint32_t ip_tcp;
 	time_t time1=0, time2=0;
 	int fd, fd2, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset;
 	struct sockaddr_in addr, addr2, addr3;
@@ -38,7 +81,10 @@ int main(int argc, char * argv[])
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
-	char* token;
+	char* token, *name_tcp, *ip_tcp;
+	struct node *head = (struct node*) malloc(sizeof(struct node));
+	head=NULL;
+	struct node* current=head;
 
 
 //Open UDP socket
@@ -144,25 +190,39 @@ int main(int argc, char * argv[])
 	}
 
 	printf("%s\n",buffer2);
-	if(buffer2+81!=NULL){
+	//Get all the servers
+	if(buffer2+8!=NULL){
 		
 		token=strtok(buffer2+8, ";");
+		name_tcp=(char*) malloc(sizeof(token));
 		strcpy(name_tcp, token);
-		printf("%s\n", name_tcp);
-		
+		printf("%s\n",name_tcp);
+
 		token=strtok(NULL, ";");	
-		ip_tcp=inet_pton(AF_INET,token, &(addr3.sin_addr));
-		printf("%d\n",ip_tcp);
-	
+		inet_aton(token, &(addr3.sin_addr));
+		ip_tcp=inet_ntoa(addr3.sin_addr);
+		printf("%s\n", ip_tcp);
+		
 		token=strtok(NULL, ";");
 		upt_tcp=atoi((char*)token);
-		printf("%d\n", upt_tcp);
-	
+		printf("%d\n",upt_tcp);
+
 		token=strtok(NULL, ";");
 		tpt_tcp=atoi((char*)token);
-		printf("%d\n", tpt_tcp);
+		printf("%d\n",tpt_tcp);
+	}	
+
+	if(ListisEmpty(head)){
+		insertFirstList(head, current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+	}else{
+		insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
 	}
+
+	printList(head);
+
 */
+//END THAT SHIT
+
 //Get time at beggining of the application
 	time1=time(NULL);
 //Start user interface
@@ -217,6 +277,7 @@ int main(int argc, char * argv[])
 					printf("Program exited successfully\n");
 					close(fd);
 					close(fd2);
+					free(head);	
 					exit(0);
 			}else if(strcmp(instruction, "join")==0){
 				addrlen=sizeof(addr);
@@ -262,5 +323,6 @@ int main(int argc, char * argv[])
 	}
 	
 free(m_vector);
+free(head);
 exit(0);
 }
