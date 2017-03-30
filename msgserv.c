@@ -33,13 +33,19 @@ typedef struct node {
    struct node *next;
 }node;
 
-void insertFirstList(node *head, node*current, char *name, char *ip, int upt, int tpt){
-   	head->name = name;
-   	head->ip = ip;
+struct node* insertFirstList(char *name, char *ip, int upt, int tpt){
+   	node *head;
+   	head=(struct node*) malloc(sizeof(struct node));
+	head->name=(char*)malloc(sizeof(char*)*strlen(name));
+	head->ip=(char*)malloc(sizeof(char*)*strlen(ip));
+	head->next=(struct node*) malloc(sizeof(struct node));
+
+   	strcpy(head->name, name);
+   	strcpy(head->ip,ip);
    	head->upt=upt;
    	head->tpt=tpt;
    	head->next = NULL;
-   	current=head;
+   	return head;
 }
 
 bool ListisEmpty(node* head) {
@@ -49,6 +55,9 @@ bool ListisEmpty(node* head) {
 
 void insertList(node *current, char *name, char *ip, int upt, int tpt) {
 	struct node *link = (struct node*) malloc(sizeof(struct node));
+
+	link->name=(char*)malloc(sizeof(char*)*strlen(name));
+	link->ip=(char*)malloc(sizeof(char*)*strlen(ip));
 
    	link->name = name;
    	link->ip = ip;
@@ -63,9 +72,10 @@ void insertList(node *current, char *name, char *ip, int upt, int tpt) {
 }
 
 void printList(node* head){
-	node* aux=head;
+	node * aux=head;
 	while(aux!=NULL){
-		printf("%s %s %d %d",aux->name,aux->ip,aux->upt,aux->tpt);
+		printf("%s\n", aux->name);
+		
 		aux=aux->next; 
 	}
 }
@@ -83,7 +93,7 @@ int main(int argc, char * argv[])
 	struct in_addr *a;
 	fd_set readfds;
 	char* token, *name_tcp, *ip_tcp;
-	struct node *head = (struct node*) malloc(sizeof(struct node));
+	struct node *head;
 	head=NULL;
 	struct node* current=head;
 
@@ -215,12 +225,9 @@ int main(int argc, char * argv[])
 		token=strtok(NULL, ";");
 		tpt_tcp=atoi(token);
 		printf("%d\n",atoi(token));
-		
-		printf("ola amigo");
 
 		if(head==NULL){
-
-			insertFirstList(head, current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+			head=insertFirstList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
 		}else{
 			insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
 		}
