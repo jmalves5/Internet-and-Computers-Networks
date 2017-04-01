@@ -33,7 +33,7 @@ typedef struct node {
    struct node *next;
 }node;
 
-struct node* insertFirstList(char *name, char *ip, int upt, int tpt){
+struct node* insertList(char *name, char *ip, int upt, int tpt){
    	node *head;
    	head=(struct node*) malloc(sizeof(struct node));
 	head->name=(char*)malloc(sizeof(char*)*strlen(name));
@@ -53,29 +53,13 @@ bool ListisEmpty(node* head) {
 }
 
 
-void insertList(node *current, char *name, char *ip, int upt, int tpt) {
-	struct node *link = (struct node*) malloc(sizeof(struct node));
-
-	link->name=(char*)malloc(sizeof(char*)*strlen(name));
-	link->ip=(char*)malloc(sizeof(char*)*strlen(ip));
-
-   	link->name = name;
-   	link->ip = ip;
-   	link->upt=upt;
-   	link->tpt=tpt;
-
-   	link->next = NULL;
-   	current->next=link;
-
-   	current=link;
-   	free(link);
-}
-
 void printList(node* head){
 	node * aux=head;
 	while(aux!=NULL){
 		printf("%s\n", aux->name);
-		
+		printf("%s\n", aux->ip);
+		printf("%d\n", aux->upt);
+		printf("%d\n", aux->tpt);
 		aux=aux->next; 
 	}
 }
@@ -92,7 +76,7 @@ int main(int argc, char * argv[])
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
-	char* token, *name_tcp, *ip_tcp;
+	char* token, *token2, *name_tcp, *ip_tcp;
 	struct node *head;
 	head=NULL;
 	struct node* current=head;
@@ -194,6 +178,7 @@ int main(int argc, char * argv[])
 		printf("Error ret_identity2 get servers\n");
 		exit(1);//error
 	}
+	memset((void*)&buffer2,(char)'\0',sizeof(buffer2));
 	nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
 	if(nread==-1){
 		printf("Error rcvfrom show_servers\n");
@@ -201,42 +186,53 @@ int main(int argc, char * argv[])
 	}
 
 	printf("%s\n",buffer2);
-	//Get all the servers
-	
-		
-	token=strtok(buffer2+8, ";");
-	if(token!=NULL){
-		name_tcp=(char*) malloc(sizeof(token));
-		strcpy(name_tcp, token);
-		printf("%s\n",name_tcp);
-	
 
+//Get all the servers	
+	token=strtok(buffer2+8, ";");
+	while(token!=NULL){
+		if(head==NULL){
+			name_tcp=(char*) malloc(strlen(token)*sizeof(char));
+		}
+		strcpy(name_tcp, token);
+		
 		token=strtok(NULL, ";");
-		ip_tcp=(char*)malloc(sizeof(token));	
+		if(token==NULL){
+			break;
+		}
+		if(head==NULL){
+			ip_tcp=(char*)malloc(strlen(token)*sizeof(char));	
+		}
 		inet_aton(token, &(addr3.sin_addr));
 		ip_tcp=inet_ntoa(addr3.sin_addr);
-		printf("%s\n", ip_tcp);
-	
 
 		token=strtok(NULL, ";");
-		upt_tcp=atoi(token);
-		printf("%d\n",upt_tcp);
-
-		token=strtok(NULL, ";");
-		tpt_tcp=atoi(token);
-		printf("%d\n",atoi(token));
-
-		if(head==NULL){
-			head=insertFirstList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
-		}else{
-			insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+		if(token==NULL){
+			break;
 		}
-		printList(head);
-	}	
+		upt_tcp=atoi(token);
+
+		token=strtok(NULL, ";");
+		if(token==NULL){
+			break;
+		}
+		tpt_tcp=atoi(token);
+
+
+//Fill the List	
+		if(head==NULL){
+			head=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+			current=head;
+		}else{
+			current->next=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
+			current=current->next;
+		}
 		
+		
+	}	
 
-//END THAT SHIT
+	printList(head);
 
+	
 //Get time at beggining of the application
 	time1=time(NULL);
 //Start user interface
@@ -280,6 +276,7 @@ int main(int argc, char * argv[])
 					printf("Error ret_identity2 get servers\n");
 					exit(1);//error
 				}
+				memset((void*)&buffer2,(char)'\0',sizeof(buffer2));
 				nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
 				if(nread==-1){
 					printf("Error rcvfrom show_servers\n");
