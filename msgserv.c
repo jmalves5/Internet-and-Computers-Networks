@@ -170,7 +170,7 @@ int main(int argc, char * argv[])
 		exit(1);//error
 	}
 
-	//Get message servers to form the list for the TCP connections WORK IN PROGRESS
+	//Get message servers to form the list for the TCP connections 
 	
 	addrlen=sizeof(addr);
 	ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
@@ -231,6 +231,9 @@ int main(int argc, char * argv[])
 	}	
 
 	printList(head);
+//CONECT TO ALL THE SERVERS
+	
+	
 
 	
 //Get time at beggining of the application
