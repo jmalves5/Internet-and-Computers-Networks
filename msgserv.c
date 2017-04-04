@@ -365,7 +365,10 @@ int main(int argc, char * argv[])
 					printf("Program exited successfully\n");
 					close(fd);
 					close(fd2);
-					free(head);
+					aux=head;
+					while(aux!=NULL){
+						free(aux);
+					}
 					exit(0);
 			}else if(strcmp(instruction, "join")==0){
 				addrlen=sizeof(addr);
