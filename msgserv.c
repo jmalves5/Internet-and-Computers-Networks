@@ -29,6 +29,7 @@ typedef struct node {
    char* name;
    char* ip;
    int upt;
+   int fd;
    int tpt;
    struct node *next;
 }node;
@@ -70,16 +71,17 @@ int main(int argc, char * argv[])
 	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140];
 	uint upt, tpt, upt_tcp, tpt_tcp;
 	time_t time1=0, time2=0;
-	int fd, fd2, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset;
-	struct sockaddr_in addr, addr2, addr3;
+	int fd, fd2, fdlisten, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset, n_servers;
+	struct sockaddr_in addr, addr2, addr3, addrtcpc, addrtcps;
 	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
 	char* token, *token2, *name_tcp, *ip_tcp;
-	struct node *head;
+	struct node *head, *aux;
 	head=NULL;
 	struct node* current=head;
+	struct in_addr *atcp=(struct in_addr*)malloc(sizeof(struct in_addr));
 
 
 //Open UDP socket
@@ -220,22 +222,54 @@ int main(int argc, char * argv[])
 
 //Fill the List	
 		if(head==NULL){
+			n_servers++:
 			head=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
 			current=head;
 		}else{
+			n_servers++;
 			current->next=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
 			current=current->next;
-		}
-		
-		
+		}		
 	}	
 
 	printList(head);
-//CONECT TO ALL THE SERVERS
-	
-	
+//CONNECT TO ALL THE SERVERS
+	aux=head;
+	int ntcp;
+	while(aux!=NULL){
+		//Open socket
+		aux->fd=socket(AF_INET, SOCK_STREAM, 0);
+		if(fd==-1){
+			printf("Error socket TCP\n");
+		}
+		//Fill sockaddr_in
+		memset((void*)&addrtcpc,(int)'\0',sizeof(addrtcpc));
+		addrtcpc.sin_family=AF_INET;
+		atcp=(struct in_addr*)aux->ip;
+		addrtcpc.sin_addr=*atcp;
+		addrtcpc.sin_port=htons(aux->tpt);
 
-	
+		ntcp=connect(aux->fd, (struct sockaddr*)&addrtcpc,sizeof(addrtcpc));
+
+		if(ntcp==-1){
+			printf("Error connect TCP\n");
+		}
+
+		aux=aux->next;
+	}
+
+//OPen TCP listen socket
+	fdlisten=socket(AF_INET, SOCK_STREAM,0);
+	memset((void*)&addrtcps,(int)'\0',sizeof(addrtcps));
+	addrtcps.sin_family=AF_INET;
+	addrtcpc.sin_addr.s_addr=htonl(INADDR_ANY);
+	addrtcpc.sin_port=htons((u_short)tpt);
+//Bind TCP port for other message servers
+
+	bind(fdlisten,(struct sockaddr*)&addrtcps,sizeof(addrtcps));
+
+	listen(fdlisten, n_servers);
+
 //Get time at beggining of the application
 	time1=time(NULL);
 //Start user interface
@@ -257,11 +291,29 @@ int main(int argc, char * argv[])
 		FD_SET(0, &readfds);
 		FD_SET(fd, &readfds);
 		FD_SET(fd2, &readfds);
-		
+		FD_SET(fdlisten, &readfds);
+		aux=head;
+		while(aux!=NULL){
+			FD_SET(aux->fd);
+		}
+
+//Retrieve maximum fd
 		maxfd=fd;
 		if(fd2>fd){
 			maxfd=fd2;
 		}
+		if(fdlisten>maxfd){
+			maxfd=fdlisten;
+		}
+		aux=head;
+		while(aux!=NULL){
+			if(aux->fd>maxfd){
+				maxfd=aux->fd;
+			}
+			aux=aux->next;
+		}
+//FICAMOS AQUINKSNJVSHNJNVJV
+
 //Select function. Checks which file descriptor is active			
 		select(maxfd+1, &readfds, NULL, NULL, NULL);
 //If stdin (0) is active read and choose what to do		
