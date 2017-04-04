@@ -71,9 +71,9 @@ int main(int argc, char * argv[])
 	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140];
 	uint upt, tpt, upt_tcp, tpt_tcp;
 	time_t time1=0, time2=0;
-	int fd, fd2, fdlisten, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset, n_servers;
-	struct sockaddr_in addr, addr2, addr3, addrtcpc, addrtcps;
-	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048];
+	int fd, fd2, fdlisten, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset, n_servers, clientlen, newfd;
+	struct sockaddr_in addr, addr2, addr3, addrtcpc, addrtcps, clientaddr;
+	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048], buffer5[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
@@ -125,7 +125,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("tejo.tecnico.ulisboa.pt");
+			h=gethostbyname("ubuntu");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -222,7 +222,7 @@ int main(int argc, char * argv[])
 
 //Fill the List	
 		if(head==NULL){
-			n_servers++:
+			n_servers++;
 			head=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
 			current=head;
 		}else{
@@ -233,6 +233,18 @@ int main(int argc, char * argv[])
 	}	
 
 	printList(head);
+
+//OPen TCP listen socket
+	fdlisten=socket(AF_INET, SOCK_STREAM,0);
+	memset((void*)&addrtcps,(int)'\0',sizeof(addrtcps));
+	addrtcps.sin_family=AF_INET;
+	addrtcpc.sin_addr.s_addr=htonl(INADDR_ANY);
+	addrtcpc.sin_port=htons((u_short)tpt);
+//Bind TCP port for other message servers
+
+	bind(fdlisten,(struct sockaddr*)&addrtcps,sizeof(addrtcps));
+
+	listen(fdlisten, n_servers);
 //CONNECT TO ALL THE SERVERS
 	aux=head;
 	int ntcp;
@@ -258,17 +270,6 @@ int main(int argc, char * argv[])
 		aux=aux->next;
 	}
 
-//OPen TCP listen socket
-	fdlisten=socket(AF_INET, SOCK_STREAM,0);
-	memset((void*)&addrtcps,(int)'\0',sizeof(addrtcps));
-	addrtcps.sin_family=AF_INET;
-	addrtcpc.sin_addr.s_addr=htonl(INADDR_ANY);
-	addrtcpc.sin_port=htons((u_short)tpt);
-//Bind TCP port for other message servers
-
-	bind(fdlisten,(struct sockaddr*)&addrtcps,sizeof(addrtcps));
-
-	listen(fdlisten, n_servers);
 
 //Get time at beggining of the application
 	time1=time(NULL);
@@ -294,7 +295,7 @@ int main(int argc, char * argv[])
 		FD_SET(fdlisten, &readfds);
 		aux=head;
 		while(aux!=NULL){
-			FD_SET(aux->fd);
+			FD_SET(aux->fd, &readfds);
 		}
 
 //Retrieve maximum fd
@@ -312,10 +313,21 @@ int main(int argc, char * argv[])
 			}
 			aux=aux->next;
 		}
-//FICAMOS AQUINKSNJVSHNJNVJV
 
 //Select function. Checks which file descriptor is active			
 		select(maxfd+1, &readfds, NULL, NULL, NULL);
+//If msgserv is active read
+		aux=head;
+		while(aux!=NULL){
+			if (FD_ISSET(aux->fd, &readfds)!=0)
+			{
+				clientlen=sizeof(clientaddr);
+				newfd=accept(aux->fd,(struct sockaddr*)&clientaddr,&clientlen);
+				read(newfd, buffer5, 2048);
+				printf("%s\n",buffer5);//AQUI
+			}
+			aux=aux->next;
+		}
 //If stdin (0) is active read and choose what to do		
 		if(FD_ISSET(0, &readfds)!=0){
 			fgets(buffer1,2048,stdin);
