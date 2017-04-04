@@ -235,42 +235,42 @@ int main(int argc, char * argv[])
 	printList(head);
 
 //OPen TCP listen socket
+
 	fdlisten=socket(AF_INET, SOCK_STREAM,0);
 	memset((void*)&addrtcps,(int)'\0',sizeof(addrtcps));
 	addrtcps.sin_family=AF_INET;
-	addrtcpc.sin_addr.s_addr=htonl(INADDR_ANY);
-	addrtcpc.sin_port=htons((u_short)tpt);
+	addrtcps.sin_addr.s_addr=htonl(INADDR_ANY);
+	addrtcps.sin_port=htons(tpt);
+
 //Bind TCP port for other message servers
 
 	bind(fdlisten,(struct sockaddr*)&addrtcps,sizeof(addrtcps));
+	
 
-	listen(fdlisten, n_servers);
 //CONNECT TO ALL THE SERVERS
 	aux=head;
 	int ntcp;
 	while(aux!=NULL){
 		//Open socket
 		aux->fd=socket(AF_INET, SOCK_STREAM, 0);
-		if(fd==-1){
+		if(aux->fd==-1){
 			printf("Error socket TCP\n");
 		}
 		//Fill sockaddr_in
 		memset((void*)&addrtcpc,(int)'\0',sizeof(addrtcpc));
 		addrtcpc.sin_family=AF_INET;
-		atcp=(struct in_addr*)aux->ip;
-		addrtcpc.sin_addr=*atcp;
+		inet_aton(aux->ip,&addrtcpc.sin_addr);
 		addrtcpc.sin_port=htons(aux->tpt);
-
 		ntcp=connect(aux->fd, (struct sockaddr*)&addrtcpc,sizeof(addrtcpc));
 
 		if(ntcp==-1){
-			printf("Error connect TCP\n");
+			printf("Error connecting to TCP server. No accept. Skipping.\n");
 		}
-
+	
 		aux=aux->next;
 	}
 
-
+	listen(fdlisten, 5);
 //Get time at beggining of the application
 	time1=time(NULL);
 //Start user interface
@@ -286,23 +286,22 @@ int main(int argc, char * argv[])
 				exit(1);//error	
 			}
 		}
+
+
 //Set the file descriptors
 
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
-		FD_SET(fd, &readfds);
 		FD_SET(fd2, &readfds);
 		FD_SET(fdlisten, &readfds);
 		aux=head;
 		while(aux!=NULL){
 			FD_SET(aux->fd, &readfds);
+			aux=aux->next;
 		}
 
 //Retrieve maximum fd
-		maxfd=fd;
-		if(fd2>fd){
-			maxfd=fd2;
-		}
+		maxfd=fd2;
 		if(fdlisten>maxfd){
 			maxfd=fdlisten;
 		}
@@ -314,20 +313,31 @@ int main(int argc, char * argv[])
 			aux=aux->next;
 		}
 
+		
 //Select function. Checks which file descriptor is active			
 		select(maxfd+1, &readfds, NULL, NULL, NULL);
+
 //If msgserv is active read
-		aux=head;
+		/*aux=head;
 		while(aux!=NULL){
 			if (FD_ISSET(aux->fd, &readfds)!=0)
 			{
-				clientlen=sizeof(clientaddr);
-				newfd=accept(aux->fd,(struct sockaddr*)&clientaddr,&clientlen);
 				read(newfd, buffer5, 2048);
-				printf("%s\n",buffer5);//AQUI
+				printf("%s\n",buffer5);
+				printf("ola\n");
 			}
+			
 			aux=aux->next;
+		}*/
+//If listenfd is active connect to the new server
+		if(FD_ISSET(fdlisten, &readfds)){
+			printf("listenfd a 1!!\n");
+			clientlen=sizeof(addrtcps);
+			newfd=accept(fdlisten,(struct sockaddr*)&addrtcps,&clientlen);
+
+			//INERE NA LISTA NOVO SERVER
 		}
+
 //If stdin (0) is active read and choose what to do		
 		if(FD_ISSET(0, &readfds)!=0){
 			fgets(buffer1,2048,stdin);
@@ -355,7 +365,7 @@ int main(int argc, char * argv[])
 					printf("Program exited successfully\n");
 					close(fd);
 					close(fd2);
-					free(head);	
+					free(head);
 					exit(0);
 			}else if(strcmp(instruction, "join")==0){
 				addrlen=sizeof(addr);
