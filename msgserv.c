@@ -260,8 +260,6 @@ int main(int argc, char * argv[])
 		head=CreateInsertNode(name_tcp, ip_tcp, upt_tcp, 1, tpt_tcp, head);
 
 	}	
-	printList(head);
-
 /*Open TCP listen socket*/
 
 	fdlisten=socket(AF_INET, SOCK_STREAM,0);
@@ -393,7 +391,6 @@ int main(int argc, char * argv[])
 /*Insert server on list*/
 			head=CreateInsertNode(name_new_tcp, ip_new_tcp, upt_new_tcp, newfd, tpt_new_tcp, head);
 /*Print Server List*/
-			printList(head);
 		}
 
 /*If stdin (0) is active read and choose what to do*/	
