@@ -7,20 +7,22 @@
 #include <string.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <ctype.h>
 
 int main(int argc, char * argv[]){
 
-	char siip[20], sipt[20];
-	int fdi, fdm, n, i, port_id, siipi, addrlen, ret, ret_identity, nread, pub, count, ip,port;
+	
+	int fdi, fdm, i, port_id, siipi, ret, ret_identity, nread, pub, port;
+	unsigned int addrlen;
 	struct sockaddr_in addr1, addr2;
-	char buffer1[2048],buffer2[2048],buffer3[2048], *b,*m, *e;
-	char colon=';';
+	char buffer1[2048],buffer2[2048], *b,*m, *e;
 	char ms_ip[128],ms_uport[128];
 	char message[140];
 	char instruction[2048];
 	struct hostent *h;
 	struct in_addr *a;
-	struct in_addr *a2;
+	char* uselesschar;
+
 
 
 
@@ -31,7 +33,7 @@ int main(int argc, char * argv[]){
 	};
 
 
-//If input checks out, start to attribute default input arguments
+/*If input checks out, start to attribute default input arguments*/
 		
 	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
 	if(h==NULL){
@@ -40,13 +42,17 @@ int main(int argc, char * argv[]){
 	
 	}
 	a=(struct in_addr*)h->h_addr_list[0];
+	if(a==NULL){
+		printf("Error in_addr");
+		exit(1);
+	}
 	
 	memset((void*)&addr1,(int)'\0',sizeof(addr1));
 	addr1.sin_family=AF_INET;
 	addr1.sin_addr=*(struct in_addr*) h->h_addr_list[0];
 	addr1.sin_port=htons(59000);
 	
- //If optional input arguments are given by the user, utilise them
+ /*If optional input arguments are given by the user, utilise them*/
 
 	for(i=0;i<=argc-1;i++){
 		
@@ -62,20 +68,20 @@ int main(int argc, char * argv[]){
 	
 
 
-//Get message servers names to connect
+/*Get message servers names to connect*/
 	addrlen=sizeof(addr1);
 	ret=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
 	if(ret==-1){
 		printf("Error ret 2\n");
-		exit(1);//error
+		exit(1);  
 	}
 	nread=recvfrom(fdi,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
 	if(nread==-1){
 		printf("Error nread 2\n");
-		exit(1);//error
+		exit(1);  
 	}
 	
-//Message server attribution
+/*Message server attribution*/
 	b=strchr(buffer2,';');
 	if(b==NULL){
 		printf("No message servers available at this time\n");
@@ -98,25 +104,29 @@ int main(int argc, char * argv[]){
 	inet_ntop(AF_INET,&(addr2.sin_addr),ms_ip,INET_ADDRSTRLEN);
 	
 
-//User interface
+/*User interface*/
 
 	while(1){
 
-		fgets(buffer1,2048,stdin);
+		uselesschar=fgets(buffer1,2048,stdin);
+		if(uselesschar==NULL){
+			printf("Error fgets");
+			exit(1);
+		}
 		sscanf(buffer1,"%s", instruction);
-//Implementing the user's commands
+/*Implementing the user's commands*/
 
 		if(strcmp(instruction, "show_servers")==0){
 			addrlen=sizeof(addr1);
 			ret_identity=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
-			if(ret==-1){
+			if(ret_identity==-1){
 				printf("Error ret\n");
-				exit(1);//error
+				exit(1);  
 			}
 			nread=recvfrom(fdi,buffer2,256,0,(struct sockaddr*)&addr1,&addrlen);
 			if(nread==-1){
 				printf("Error nread\n");
-				exit(1);//error
+				exit(1);  
 			}
 			printf("%s\n",buffer2);
 		}

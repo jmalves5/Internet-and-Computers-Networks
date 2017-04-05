@@ -13,11 +13,12 @@
 #include <stdbool.h>
 
 
-
 typedef struct svmessage{
-	char string_message[140];
-	int tmessage;
+  char string_message[140];
+  int tmessage;
 }svmessage;
+
+
 
 typedef struct node {
    char name[40];
@@ -28,95 +29,117 @@ typedef struct node {
    struct node *next;
 }node;
 
-void* insertmessage(struct svmessage* m_vector, char* message, int time, int n_messages);
+node* CreateInsertNode(char name[40], char ip[40], int upt, int fd, int tpt, node* head){
+  if(head==NULL){
+ 
+    head = (node *) malloc(sizeof(node));
+    strcpy(head->name, name);
+    strcpy(head->ip, ip);
+    head->upt=upt;
+    head->tpt=tpt;
+    head->next=NULL;
+    head->fd=fd;
+    head->next=NULL;
+   
+  }else{
+/*Create node*/
+    node* link=(node *) malloc(sizeof(node));
+    strcpy(link->name, name);
+    strcpy(link->ip, ip);
+    link->upt=upt;
+    link->tpt=tpt;
+    link->next=NULL;
+    link->fd=fd;
+/*Insert in list*/
+    node*aux=head;
+    while(aux->next!=NULL){
+      aux=aux->next;
+    }
+    aux->next=link;
+  }
+  return head;
+}
 
-void* insertmessage(struct svmessage* m_vector, char* message, int time, int n_messages){   
+
+void printList(node* head){
+  node * aux=head;
+  while(aux!=NULL){
+    printf("%s\n", aux->name);
+    printf("%s\n", aux->ip);
+    printf("%d\n", aux->upt);
+    printf("%d\n", aux->tpt);
+    aux=aux->next; 
+  }
+}
+
+void insertmessage(struct svmessage* m_vector, char* message, int time, int n_messages){   
     strcpy(m_vector[n_messages].string_message, message);
     m_vector[n_messages].tmessage=time;
     n_messages++;
 }
 
-void* insertList(node* current, char *name, char *ip, int upt, int tpt, int fd);
-void* insertList(node* current, char *name, char *ip, int upt, int tpt, int fd){
-   	node *link;
-   	link=(struct node*) malloc(sizeof(struct node));
-	link->next=(struct node*) malloc(sizeof(struct node));
 
-   	strcpy(link->name, name);
-   	strcpy(link->ip,ip);
-   	
-   	link->upt=upt;
-   	
-   	link->tpt=tpt;
-   	
-   	link->next = NULL;
-   	link->fd=fd;
-   	
-   	current->next=link;
-   	
-   	current=link;
+
+
+node * initLinkedList(void)
+{
+  return NULL;
 }
 
-bool ListisEmpty(node* head) {
-   return head == NULL;
-}
-
-
-void* printList(node* head){
-	node * aux=head;
+void freeList(node*head){
+	node*aux=head;
 	while(aux!=NULL){
-		printf("%s\n", aux->name);
-		printf("%s\n", aux->ip);
-		printf("%d\n", aux->upt);
-		printf("%d\n", aux->tpt);
-		aux=aux->next; 
+		close(aux->fd);
+		free(aux);
+		aux=aux->next;
 	}
+	return;
 }
+
 
 int main(int argc, char * argv[])
 {
-	struct svmessage m_vector[2048];
-	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140],name_tcp[40], ip_tcp[40], name_new_tcp[40], ip_new_tcp[40];
-	uint upt, tpt, upt_tcp, tpt_tcp, upt_new_tcp, tpt_new_tcp;
+	
+	char name[100], ip[20], instruction[20], protocol_message[1024], name_tcp[40], ip_tcp[40], name_new_tcp[40], ip_new_tcp[40];
+	unsigned int upt, tpt, upt_tcp, tpt_tcp, upt_new_tcp, tpt_new_tcp;
 	time_t time1=0, time2=0;
-	int fd, fd2, fdlisten, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset, n_servers, clientlen, newfd;
-	struct sockaddr_in addr, addr2, addr3, addrtcpc, addrtcps, clientaddr;
+	int useless, fd, fd2, fdlisten, ret_identity1, ret_identity2, ret_terminal, nread=0, m=0, r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset,newfd;
+	unsigned int addrlen, addrlen2,clientlen;
+	struct sockaddr_in addr, addr2, addr3, addrtcpc, addrtcps;
 	char buffer1[2048],buffer2[2048],buffer3[2048], buffer4[2048], buffer5[2048];
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
-	char* token, *token2;
-	struct node *head, *aux;
-	head=NULL;
-	struct node* current=(struct node*) malloc(sizeof(struct node));
-	struct in_addr *atcp=(struct in_addr*)malloc(sizeof(struct in_addr));
+	char* token, *uselesschar;
+	struct node* head=initLinkedList();
+	struct node* aux;
 
 
-//Open UDP socket
+/*Open UDP socket*/
 	fd=socket(AF_INET,SOCK_DGRAM,0);
 	if(fd==-1){
 		printf("Error fd=socket\n");
-		exit(1);//error
+		exit(1); 
 	}
 	fd2=socket(AF_INET,SOCK_DGRAM,0);
 	if(fd==-1){
 		printf("Error fd2=socket\n");
-		exit(1);//error
+		exit(1); 
 	}
 	
-//Clear addr for use
+/*Clear addr for use*/
 	memset((void*)&addr,(int)'\0',sizeof(addr));
 	memset((void*)&addr2,(int)'\0',sizeof(addr2));
 
-//Specify family
+/*Specify family*/
 	addr.sin_family=AF_INET;
 	addr2.sin_family=AF_INET;
 	addr3.sin_family=AF_INET;
-//Prepare UDP with terminals
+/*Prepare UDP with terminals*/
 	addr2.sin_addr.s_addr=htonl(INADDR_ANY);
 
 	
-//Begin to separate input arguments. With or whitout optional input arguments.
+/*Begin to separate input arguments. With or whitout optional input arguments.*/
 	if((argc < 9)){
 		printf("Invalid input: Not enough arguments\n");
 		exit(1);
@@ -126,7 +149,7 @@ int main(int argc, char * argv[])
 			exit(1);
 		}else{
 
-//If input checks out, start to attribute default input arguments
+/*If input checks out, start to attribute default input arguments*/
 			
 			strcpy(name, argv[2]);
 			strcpy(ip, argv[4]);
@@ -152,7 +175,7 @@ int main(int argc, char * argv[])
 			r=10;
 		}
 	}
-//If optional input arguments are given by the user, utilise them
+/*If optional input arguments are given by the user, utilise them*/
 	
 	for(i=0;i<=argc-1;i++){
 		
@@ -172,48 +195,51 @@ int main(int argc, char * argv[])
 		}
 
 	}
-	//Bind the UDP server port to the terminals
+	/*Declare message_vector of m size*/
+	struct svmessage m_vector[m];
+
+
+	/*Bind the UDP server port to the terminals*/
 	addr2.sin_port=htons(upt);
 	ret_terminal=bind(fd2,(struct sockaddr*)&addr2,sizeof(addr2));
 	if(ret_terminal==-1){
 		printf("Error ret_terminal=bind\n");
-		exit(1);//error
+		exit(1); 
 	}
-	//Join
-	addrlen=sizeof(addr);
+	
+	/*Join*/
 	sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
-	ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+	ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,sizeof(addr));
 	if(ret_identity1==-1){
 		printf("Error ret_identity1 join\n");
-		exit(1);//error	
+		exit(1); 	
 	}
 
-	//Get message servers to form the list for the TCP connections 
+	/*Get message servers to form the list for the TCP connections*/
 
-	ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
+	ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,sizeof(addr));
 	if(ret_identity2==-1){
 		printf("Error ret_identity2 get servers\n");
-		exit(1);//error
+		exit(1); 
 	}
 	memset((void*)&buffer2,(char)'\0',sizeof(buffer2));
+	addrlen=sizeof(addr);
 	nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
 	if(nread==-1){
 		printf("Error rcvfrom show_servers\n");
-		exit(1);//error
+		exit(1); 
 	}	
-//Get all the servers	
+/*Get all the servers*/	
 	if(buffer2!=NULL){
 		token=strtok(buffer2+8, ";");
 	}
 	while(token!=NULL){
-	
 		strcpy(name_tcp, token);
-		
+	
 		token=strtok(NULL, ";");
 		if(token==NULL){
 			break;
 		}
-		
 		inet_aton(token, &(addr3.sin_addr));
 		strcpy(ip_tcp, inet_ntoa(addr3.sin_addr));
 
@@ -230,28 +256,13 @@ int main(int argc, char * argv[])
 		tpt_tcp=atoi(token);
 
 
-//Fill the List	
-		if(head==NULL){
-			n_servers++;
-			head=(struct node*) malloc(sizeof(struct node));
-			head->next=(struct node*) malloc(sizeof(struct node));
+/*Fill the List*/	
+		head=CreateInsertNode(name_tcp, ip_tcp, upt_tcp, 1, tpt_tcp, head);
 
-   			strcpy(head->name, name_tcp);
-   			strcpy(head->ip,ip_tcp);
-   			head->upt=upt_tcp;
-   			head->tpt=tpt_tcp;
-   			head->next = NULL;
-
-  		 	current=head;
-		}else{
-			n_servers++;
-			insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp, 1);
-		}		
 	}	
+	printList(head);
 
-	
-
-//OPen TCP listen socket
+/*Open TCP listen socket*/
 
 	fdlisten=socket(AF_INET, SOCK_STREAM,0);
 	memset((void*)&addrtcps,(int)'\0',sizeof(addrtcps));
@@ -259,42 +270,48 @@ int main(int argc, char * argv[])
 	addrtcps.sin_addr.s_addr=htonl(INADDR_ANY);
 	addrtcps.sin_port=htons(tpt);
 
-//Bind TCP port for other message servers
+/*Bind TCP port for other message servers*/
 
 	bind(fdlisten,(struct sockaddr*)&addrtcps,sizeof(addrtcps));
 	
 
-//CONNECT TO ALL THE SERVERS
+/*CONNECT TO ALL THE SERVERS*/
 	aux=head;
 	int ntcp;
 	while(aux!=NULL){
-		//Open socket
+		/*Open socket*/
 		aux->fd=socket(AF_INET, SOCK_STREAM, 0);
 		if(aux->fd==-1){
 			printf("Error socket TCP\n");
 		}
-		//Fill sockaddr_in
+		/*Fill sockaddr_in*/
 		memset((void*)&addrtcpc,(int)'\0',sizeof(addrtcpc));
 		addrtcpc.sin_family=AF_INET;
 		inet_aton(aux->ip,&addrtcpc.sin_addr);
 		addrtcpc.sin_port=htons(aux->tpt);
 		
-		if(strcmp(aux->ip,ip)!=0){
+		if(strcmp(aux->ip,ip)!=0 && strcmp(aux->name,name)!=0){
 			ntcp=connect(aux->fd, (struct sockaddr*)&addrtcpc,sizeof(addrtcpc));
 			if(ntcp==-1){
-				printf("Error connecting to TCP server. No accept. Skipping.\n");
+				printf("\n");
+				printf("Error connecting to TCP server %s. No accept. Skipping.\n", aux->ip);
+				break;
 			}	
 			sprintf(buffer5, "%s;%s;%d;%d;\n", name, ip, upt, tpt);
-			write(aux->fd,buffer5, 200);
+			useless=write(aux->fd,buffer5, 200);
+			if(useless==-1){
+				printf("Error write\n");
+				exit(1);
+			}
 		}
 		aux=aux->next;
 	}
 
 	listen(fdlisten, 5);
-//Get time at beggining of the application
+/*Get time at beggining of the application*/
 	time1=time(NULL);
 	
-//Start user interface
+/*Start user interface*/
 	while(1){
 		time2=time(NULL);
 		if(time2-time1>r){
@@ -304,11 +321,11 @@ int main(int argc, char * argv[])
 			ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
 			if(ret_identity1==-1){
 				printf("Error ret_identity1 join\n");
-				exit(1);//error	
+				exit(1); 	
 			}
 		}
 		
-//Set the file descriptors
+/*Set the file descriptors*/
 
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
@@ -320,7 +337,7 @@ int main(int argc, char * argv[])
 			aux=aux->next;
 		}
 
-//Retrieve maximum fd
+/*Retrieve maximum fd*/
 		maxfd=fd2;
 		if(fdlisten>maxfd){
 			maxfd=fdlisten;
@@ -334,10 +351,10 @@ int main(int argc, char * argv[])
 		}
 
 		
-//Select function. Checks which file descriptor is active			
+/*Select function. Checks which file descriptor is active*/			
 		select(maxfd+1, &readfds, NULL, NULL, NULL);
 
-//If msgserv is active read
+/*If msgserv is active read*/
 		/*aux=head;
 		while(aux!=NULL){
 			if (FD_ISSET(aux->fd, &readfds)!=0)
@@ -349,12 +366,16 @@ int main(int argc, char * argv[])
 			
 			aux=aux->next;
 		}*/
-//If listenfd is active connect to the new server
+/*If listenfd is active connect to the new server*/
 		if(FD_ISSET(fdlisten, &readfds)){
 			
 			clientlen=sizeof(addrtcps);
 			newfd=accept(fdlisten,(struct sockaddr*)&addrtcps,&clientlen);
-			read(newfd, buffer5, 2048);
+			useless=read(newfd, buffer5, 2048);
+			if(useless==-1){
+				printf("Error read\n");
+				exit(1);
+			}
 			printf("mensagem recebida: ");
 			printf("%s\n",buffer5);
 			
@@ -369,15 +390,19 @@ int main(int argc, char * argv[])
 			
 			token=strtok(NULL, ";");
 			tpt_new_tcp=atoi(token);
-//Insert server on list
-			insertList(current, name_new_tcp, ip_new_tcp,  upt_new_tcp, tpt_new_tcp, newfd);
-//Print Server List
+/*Insert server on list*/
+			head=CreateInsertNode(name_new_tcp, ip_new_tcp, upt_new_tcp, newfd, tpt_new_tcp, head);
+/*Print Server List*/
 			printList(head);
 		}
 
-//If stdin (0) is active read and choose what to do		
+/*If stdin (0) is active read and choose what to do*/	
 		if(FD_ISSET(0, &readfds)!=0){
-			fgets(buffer1,2048,stdin);
+			uselesschar=fgets(buffer1,2048,stdin);
+			if(uselesschar==NULL){
+				printf("Error fgets\n");
+				exit(1);
+			}
 			sscanf(buffer1,"%s", instruction);
 			if(strcmp(instruction, "show_messages")==0){							
     			for(i=0;i!=n_messages;i++){
@@ -388,15 +413,15 @@ int main(int argc, char * argv[])
 				ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
 				if(ret_identity2==-1){
 					printf("Error ret_identity2 get servers\n");
-					exit(1);//error
+					exit(1); 
 				}
 				memset((void*)&buffer2,(char)'\0',sizeof(buffer2));
 				nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
 				if(nread==-1){
 					printf("Error rcvfrom show_servers\n");
-				exit(1);//error
+				exit(1); 
 				}
-				printf("sid64:\n");
+				printf("Identity server:\n");
 				printf("%s\n",buffer2);
 				printf("Lista:\n");
 				printList(head);
@@ -405,11 +430,7 @@ int main(int argc, char * argv[])
 					printf("Program exited successfully\n");
 					close(fd);
 					close(fd2);
-					aux=head;
-					while(aux!=NULL){
-						free(aux);
-						aux=aux->next;
-					}
+					freeList(head);
 					exit(0);
 			}else if(strcmp(instruction, "join")==0){
 				addrlen=sizeof(addr);
@@ -418,19 +439,19 @@ int main(int argc, char * argv[])
 				ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
 				if(ret_identity1==-1){
 					printf("Error ret_identity join\n");
-					exit(1);//error
+					exit(1); 
 				}
 				time1=time(NULL);
 			}else{
 				printf("Command not recognized\n");
 			}
-//If terminal file descriptor is active, read and choose what to do
+/*If terminal file descriptor is active, read and choose what to do*/
 		}else if(FD_ISSET(fd2, &readfds)!=0){
 			addrlen2=sizeof(addr2);
 			nread1=recvfrom(fd2,buffer4,2048,0,(struct sockaddr*)&addr2,&addrlen2);
 			if(nread1==-1){
 					printf("Error rcvfrom message\n");
-				exit(1);//error
+				exit(1);
 				}
 			token=strtok(buffer4, " ");
 			if(strcmp(token, "PUBLISH")==0){
@@ -444,7 +465,7 @@ int main(int argc, char * argv[])
 					token=strtok(NULL, " ");
 				}
 				printf("%s", protocol_message);
-//Insert message read into the message vector m_vector
+/*Insert message read into the message vector m_vector*/
 				insertmessage(m_vector, protocol_message, logic_time, n_messages);
     			n_messages++;
     		}
