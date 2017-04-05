@@ -26,27 +26,32 @@ void insertmessage(struct svmessage* m_vector, char* message, int time, int n_me
 }
 
 typedef struct node {
-   char* name;
-   char* ip;
+   char name[40];
+   char ip[40];
    int upt;
    int fd;
    int tpt;
    struct node *next;
 }node;
 
-struct node* insertList(char *name, char *ip, int upt, int tpt){
-   	node *head;
-   	head=(struct node*) malloc(sizeof(struct node));
-	head->name=(char*)malloc(sizeof(char*)*strlen(name));
-	head->ip=(char*)malloc(sizeof(char*)*strlen(ip));
-	head->next=(struct node*) malloc(sizeof(struct node));
+void* insertList(node* current, char *name, char *ip, int upt, int tpt, int fd){
+   	node *link;
+   	link=(struct node*) malloc(sizeof(struct node));
+	link->next=(struct node*) malloc(sizeof(struct node));
 
-   	strcpy(head->name, name);
-   	strcpy(head->ip,ip);
-   	head->upt=upt;
-   	head->tpt=tpt;
-   	head->next = NULL;
-   	return head;
+   	strcpy(link->name, name);
+   	strcpy(link->ip,ip);
+   	
+   	link->upt=upt;
+   	
+   	link->tpt=tpt;
+   	
+   	link->next = NULL;
+   	link->fd=fd;
+   	
+   	current->next=link;
+   	
+   	current=link;
 }
 
 bool ListisEmpty(node* head) {
@@ -68,8 +73,8 @@ void printList(node* head){
 int main(int argc, char * argv[])
 {
 	struct svmessage m_vector[2048];
-	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140];
-	uint upt, tpt, upt_tcp, tpt_tcp;
+	char name[100], ip[20], siip[20], sipt[20], instruction[20], protocol_message[1024], aux_pm[40], message[140],name_tcp[40], ip_tcp[40], name_new_tcp[40], ip_new_tcp[40];
+	uint upt, tpt, upt_tcp, tpt_tcp, upt_new_tcp, tpt_new_tcp;
 	time_t time1=0, time2=0;
 	int fd, fd2, fdlisten, addrlen, addrlen2, ret_identity1, ret_identity2, ret_terminal, nread=0, m ,r, port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset, n_servers, clientlen, newfd;
 	struct sockaddr_in addr, addr2, addr3, addrtcpc, addrtcps, clientaddr;
@@ -77,10 +82,10 @@ int main(int argc, char * argv[])
 	struct hostent *h;
 	struct in_addr *a;
 	fd_set readfds;
-	char* token, *token2, *name_tcp, *ip_tcp;
+	char* token, *token2;
 	struct node *head, *aux;
 	head=NULL;
-	struct node* current=head;
+	struct node* current=(struct node*) malloc(sizeof(struct node));
 	struct in_addr *atcp=(struct in_addr*)malloc(sizeof(struct in_addr));
 
 
@@ -188,24 +193,22 @@ int main(int argc, char * argv[])
 	}
 
 	printf("%s\n",buffer2);
-
+	
 //Get all the servers	
-	token=strtok(buffer2+8, ";");
+	if(buffer2!=NULL){
+		token=strtok(buffer2+8, ";");
+	}
 	while(token!=NULL){
-		if(head==NULL){
-			name_tcp=(char*) malloc(strlen(token)*sizeof(char));
-		}
+	
 		strcpy(name_tcp, token);
 		
 		token=strtok(NULL, ";");
 		if(token==NULL){
 			break;
 		}
-		if(head==NULL){
-			ip_tcp=(char*)malloc(strlen(token)*sizeof(char));	
-		}
+		
 		inet_aton(token, &(addr3.sin_addr));
-		ip_tcp=inet_ntoa(addr3.sin_addr);
+		strcpy(ip_tcp, inet_ntoa(addr3.sin_addr));
 
 		token=strtok(NULL, ";");
 		if(token==NULL){
@@ -223,12 +226,19 @@ int main(int argc, char * argv[])
 //Fill the List	
 		if(head==NULL){
 			n_servers++;
-			head=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
-			current=head;
+			head=(struct node*) malloc(sizeof(struct node));
+			head->next=(struct node*) malloc(sizeof(struct node));
+
+   			strcpy(head->name, name_tcp);
+   			strcpy(head->ip,ip_tcp);
+   			head->upt=upt_tcp;
+   			head->tpt=tpt_tcp;
+   			head->next = NULL;
+
+  		 	current=head;
 		}else{
 			n_servers++;
-			current->next=insertList(name_tcp, ip_tcp, upt_tcp, tpt_tcp);
-			current=current->next;
+			insertList(current, name_tcp, ip_tcp, upt_tcp, tpt_tcp, 1);
 		}		
 	}	
 
@@ -261,12 +271,15 @@ int main(int argc, char * argv[])
 		addrtcpc.sin_family=AF_INET;
 		inet_aton(aux->ip,&addrtcpc.sin_addr);
 		addrtcpc.sin_port=htons(aux->tpt);
-		ntcp=connect(aux->fd, (struct sockaddr*)&addrtcpc,sizeof(addrtcpc));
-
-		if(ntcp==-1){
-			printf("Error connecting to TCP server. No accept. Skipping.\n");
+		
+		if(strcmp(aux->ip,ip)!=0){
+			ntcp=connect(aux->fd, (struct sockaddr*)&addrtcpc,sizeof(addrtcpc));
+			if(ntcp==-1){
+				printf("Error connecting to TCP server. No accept. Skipping.\n");
+			}	
+			sprintf(buffer5, "%s;%s;%d;%d;\n", name, ip, upt, tpt);
+			write(aux->fd,buffer5, 200);
 		}
-	
 		aux=aux->next;
 	}
 
@@ -286,8 +299,7 @@ int main(int argc, char * argv[])
 				exit(1);//error	
 			}
 		}
-
-
+		
 //Set the file descriptors
 
 		FD_ZERO(&readfds);
@@ -331,11 +343,32 @@ int main(int argc, char * argv[])
 		}*/
 //If listenfd is active connect to the new server
 		if(FD_ISSET(fdlisten, &readfds)){
-			printf("listenfd a 1!!\n");
+			
 			clientlen=sizeof(addrtcps);
 			newfd=accept(fdlisten,(struct sockaddr*)&addrtcps,&clientlen);
+			read(newfd, buffer5, 2048);
+			
+			
+			token=strtok(buffer5, ";");
+			strcpy(name_new_tcp, token);
 
-			//INERE NA LISTA NOVO SERVER
+			token=strtok(NULL, ";");
+			strcpy(ip_new_tcp, token);
+
+			token=strtok(NULL, ";");
+			upt_new_tcp=atoi(token);
+			
+			token=strtok(NULL, ";");
+			tpt_new_tcp=atoi(token);
+//Insere novo server na lista
+//NAO FUNCIONA A PARTIR DAQUI mozão
+			insertList(current, name_new_tcp, ip_new_tcp,  upt_new_tcp, tpt_new_tcp, newfd);
+//Imprimir a lista
+			
+			printList(head);
+			
+		 
+			
 		}
 
 //If stdin (0) is active read and choose what to do		
@@ -368,6 +401,7 @@ int main(int argc, char * argv[])
 					aux=head;
 					while(aux!=NULL){
 						free(aux);
+						aux=aux->next;
 					}
 					exit(0);
 			}else if(strcmp(instruction, "join")==0){
