@@ -179,10 +179,17 @@ int main(int argc, char * argv[])
 		printf("Error ret_terminal=bind\n");
 		exit(1);//error
 	}
+	//Join
+	addrlen=sizeof(addr);
+	sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
+	ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+	if(ret_identity1==-1){
+		printf("Error ret_identity1 join\n");
+		exit(1);//error	
+	}
 
 	//Get message servers to form the list for the TCP connections 
-	
-	addrlen=sizeof(addr);
+
 	ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
 	if(ret_identity2==-1){
 		printf("Error ret_identity2 get servers\n");
@@ -193,8 +200,7 @@ int main(int argc, char * argv[])
 	if(nread==-1){
 		printf("Error rcvfrom show_servers\n");
 		exit(1);//error
-	}
-	
+	}	
 //Get all the servers	
 	if(buffer2!=NULL){
 		token=strtok(buffer2+8, ";");
@@ -243,7 +249,7 @@ int main(int argc, char * argv[])
 		}		
 	}	
 
-	printList(head);
+	
 
 //OPen TCP listen socket
 
@@ -287,13 +293,6 @@ int main(int argc, char * argv[])
 	listen(fdlisten, 5);
 //Get time at beggining of the application
 	time1=time(NULL);
-//Join
-	sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
-	ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
-	if(ret_identity1==-1){
-		printf("Error ret_identity1 join\n");
-		exit(1);//error	
-	}
 	
 //Start user interface
 	while(1){
@@ -370,9 +369,9 @@ int main(int argc, char * argv[])
 			
 			token=strtok(NULL, ";");
 			tpt_new_tcp=atoi(token);
-//Insere novo server na lista
+//Insert server on list
 			insertList(current, name_new_tcp, ip_new_tcp,  upt_new_tcp, tpt_new_tcp, newfd);
-//Imprimir a lista
+//Print Server List
 			printList(head);
 		}
 
@@ -397,7 +396,10 @@ int main(int argc, char * argv[])
 					printf("Error rcvfrom show_servers\n");
 				exit(1);//error
 				}
+				printf("sid64:\n");
 				printf("%s\n",buffer2);
+				printf("Lista:\n");
+				printList(head);
 
 			}else if(strcmp(instruction, "exit")==0){
 					printf("Program exited successfully\n");
