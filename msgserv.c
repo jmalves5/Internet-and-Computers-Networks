@@ -198,7 +198,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("tejo.tecnico.ulisboa.pt");
+			h=gethostbyname("ubuntu");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -417,6 +417,7 @@ int main(int argc, char * argv[])
 					printf("Error read1\n");
 					exit(1);
 				}else if(useless==0){
+/*If TCP conection ends, close and remove it form list*/
 					printf("End of TCP connection with %s\n", aux->name);
 					close(aux->fd);
 					head=removefromList(head, aux);
@@ -480,7 +481,7 @@ int main(int argc, char * argv[])
 				if(strcmp(token, "SGET_MESSAGES")==0){
 					memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
 					sprintf(buffer5,"SMESSAGES\n");
-					for(i=n_messages-1;i>=0;i--){
+					for(i=0;i<n_messages;i++){
 						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 						sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
 						printf("Sending to msgserv: %s\n", buffer6);

@@ -26,13 +26,13 @@ int main(int argc, char * argv[]){
 	int fdi=0, fdm=0, i=0, port_id=0, siipi=0, ret=0, ret_identity=0, nread=0, pub=0, port=0, n_show_messages_int=0, get_m, n_read_m=0;
 	unsigned int addrlen;
 	struct sockaddr_in addr1, addr2;
-	char buffer1[2048],buffer2[2048], *b,*m, *e;
+	char buffer1[2048],buffer2[2048];
 	char ms_ip[128],ms_uport[128];
 	char message[140];
 	char instruction[2048];
 	struct hostent *h;
 	struct in_addr *a;
-	char* uselesschar;
+	char* uselesschar, *token=NULL;
 	
 
 
@@ -47,7 +47,7 @@ int main(int argc, char * argv[]){
 
 /*If input checks out, start to attribute default input arguments*/
 		
-	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
+	h=gethostbyname("ubuntu");		
 	if(h==NULL){
 		printf("Error getting siip\n");
 		exit(1);
@@ -93,19 +93,20 @@ int main(int argc, char * argv[]){
 		exit(1);  
 	}
 	
-/*Message server attribution*/
-	b=strchr(buffer2,';');
-	if(b==NULL){
-		printf("No message servers available at this time\n");
-		exit(1);
-	}
-	m=strchr(b+1,';');
-	e=strchr(m+1,';');
+/*Message server infromation attribution*/
 	memset((void*)&ms_ip,(char)'\0',sizeof(ms_ip));
 	memset((void*)&ms_uport,(char)'\0',sizeof(ms_uport));
 
-	strncpy(ms_ip,b+1, m-b-1);
-	strncpy(ms_uport, m+1, e-m-1);
+	token=strtok(buffer2+8, ";");
+	if(token==NULL){
+		printf("No message servers available at the moment");
+		exit(0);
+	}
+	token=strtok(NULL, ";");
+	strcpy(ms_ip, token);
+	token=strtok(NULL, ";");
+	strcpy(ms_uport, token);
+	token=strtok(NULL, "\n");
 
 	
 	port=atoi(ms_uport);
