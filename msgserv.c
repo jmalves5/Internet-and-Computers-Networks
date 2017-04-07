@@ -416,30 +416,34 @@ int main(int argc, char * argv[])
 				if(useless==-1){
 					printf("Error read1\n");
 					exit(1);
-				}else{
+				}else if(useless==0){
+					printf("End of TCP connection with %s\n", aux->name);
+					head=removefromList(head, aux);
+					break;
+				}	
 
-					token=strtok(buffer6, "\n");
-					if(token!=NULL){
+				token=strtok(buffer6, "\n");
+				if(token!=NULL){
 /*If SMESSAGES is received, receive the message table that follows*/
-						if(strcmp(token, "SMESSAGES")==0){
-							token=strtok(NULL, ";");
-							while(token!=NULL){
-								logic_time=atoi(token);
-								token=strtok(NULL, "\n");
-								if(token==NULL){break;}
-								n_messages++;
-								printf("Received from msgserv: %d;%s\n",logic_time, token);
-/*Insert each message into the message vector*/
-								insertmessage(m_vector, token, logic_time, n_messages-1);
-								token=strtok(NULL, "\n");
-								token=strtok(NULL, ";");
+					if(strcmp(token, "SMESSAGES")==0){
+						token=strtok(NULL, ";");
+						while(token!=NULL){
+							logic_time=atoi(token);
+							token=strtok(NULL, "\n");
+							if(token==NULL){
+								printf("Wrong protocol message/format from another server!\n");
+								break;
 							}
-						}else{
-							printf("Wrong protocol message format!\n");
+							n_messages++;
+							printf("Received from msgserv: %d;%s\n",logic_time, token);
+/*Insert each message into the message vector*/
+							insertmessage(m_vector, token, logic_time, n_messages-1);
+							token=strtok(NULL, "\n");
+							token=strtok(NULL, ";");
 						}
 					}
-				
 				}
+				
 			}
 			aux=aux->next;
 
@@ -488,7 +492,7 @@ int main(int argc, char * argv[])
 						exit(1);
 					}
 				}else{
-							printf("Wrong protocol message format!\n");
+							printf("Wrong protocol message/format from new server!\n");
 						}
 			}
 		}
@@ -522,7 +526,7 @@ int main(int argc, char * argv[])
 					printf("Error rcvfrom show_servers\n");
 					exit(1); 
 				}
-/*Prints out identity server list of servers and our list of servers (they can mismatch)*/
+/*Prints out identity server list of servers, not our list of servers (they can mismatch)*/
 				printf("%s\n",buffer2);
 /*Case exit*/
 			}else if(strcmp(instruction, "exit")==0){
@@ -595,34 +599,30 @@ int main(int argc, char * argv[])
 /*If a rmb asks for n messages*/
     		}else if(strcmp(token, "GET_MESSAGES")==0){
     			token=strtok(NULL, "\n");
-    			if (token==NULL)
-    			{
-    				break;    			
-    			}
-    			n_messages_to_send=atoi(token);
+    			if (token!=NULL){   			
+    				n_messages_to_send=atoi(token);
 /*If there are n messages available, send them, if there aren't, send those that the server has in storeage*/
-    			if(n_messages_to_send>n_messages){
-    				n_messages_to_send=n_messages;
-    			}
+    				if(n_messages_to_send>n_messages){
+    					n_messages_to_send=n_messages;
+    				}
 
-    			memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
-				sprintf(buffer5,"MESSAGES\n");
-				for(i=n_messages-1;i>=n_messages-n_messages_to_send;i--){
-					memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
-					sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
-					printf("Sending to rmb: %s\n", buffer6);
-					strcat(buffer5+9, buffer6);
-				}
+    				memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
+					sprintf(buffer5,"MESSAGES\n");
+					for(i=n_messages-1;i>=n_messages-n_messages_to_send;i--){
+						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
+						sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
+						printf("Sending to rmb: %s\n", buffer6);
+						strcat(buffer5+9, buffer6);
+					}
 /*Send them the messages*/
-				send_m=sendto(fd2,buffer5, 251,0,(struct sockaddr*)&addr2,addrlen2);
-				if(send_m==-1){
-					printf("Error send_m\n");
-					exit(1);  
+					send_m=sendto(fd2,buffer5, 251,0,(struct sockaddr*)&addr2,addrlen2);
+					if(send_m==-1){
+						printf("Error send_m\n");
+						exit(1);  
+					}
 				}
-
-
     		}else{
-				printf("Wrong protocol message format!\n");
+				printf("Wrong protocol message/format from rmb!\n");
 			}
 		}
 	}
