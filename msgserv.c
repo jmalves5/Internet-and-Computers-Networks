@@ -1,3 +1,13 @@
+/**************************************************************************************************************/
+/*************************************************RCI Project**************************************************/
+/*RCI-Reliable Message Board												  Redes de Computadores e Internet*/
+/*João Alves 			Nº78181										  		          2nd Semester - 2016/2017*/
+/*Filipa Fernandes		Nº78383					         	  	   			        Instituto Superior Técnico*/ 
+/*                                                       											          */
+/**************************************************************************************************************/
+/* 						                           msgserv.c 													  */
+/**************************************************************************************************************/
+
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -10,16 +20,16 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <time.h>
-#include <stdbool.h>
 
 
+/*Saved message structure. Contains message and it's logic clock value*/
 typedef struct svmessage{
   char string_message[140];
   int tmessage;
 }svmessage;
 
 
-
+/*Connected TCP server structure*/
 typedef struct node {
    char name[40];
    char ip[40];
@@ -305,7 +315,7 @@ int main(int argc, char * argv[])
 	bind(fdlisten,(struct sockaddr*)&addrtcps,sizeof(addrtcps));
 	
 
-/*CONNECT TO ALL THE SERVERS*/
+/*TCP connection to all servers available*/
 	aux=head;
 	int ntcp;
 	while(aux!=NULL){
@@ -320,13 +330,14 @@ int main(int argc, char * argv[])
 		addrtcpc.sin_family=AF_INET;
 		inet_aton(aux->ip,&addrtcpc.sin_addr);
 		addrtcpc.sin_port=htons(aux->tpt);
-		
+/*Connect to available servers*/		
 		if(strcmp(aux->ip,ip)!=0 && strcmp(aux->name,name)!=0){
 			ntcp=connect(aux->fd, (struct sockaddr*)&addrtcpc,sizeof(addrtcpc));
 			if(ntcp==-1){
-				printf("Error connecting to TCP server %s. No accept. Removed from list\n", aux->ip);
+/*Remove server from List if  not connected*/
+				printf("Can't connect to %s Skipping it\n",aux->name);
 				head=removefromList(head, aux);
-
+/*Send server information to all servers*/
 			}else{
 				memset((void*)&buffer5,(char)'\0',sizeof(buffer5));	
 				sprintf(buffer5, "%s;%s;%d;%d;", name, ip, upt, tpt);
@@ -335,7 +346,7 @@ int main(int argc, char * argv[])
 					printf("Error write1\n");
 					exit(1);
 				}
-
+/*Get all messages from msg servers*/ 
 				sprintf(buffer5, "SGET_MESSAGES\n");
 				useless=write(head->fd,buffer5, strlen(buffer5));
 				if(useless==-1){
@@ -346,16 +357,19 @@ int main(int argc, char * argv[])
 		}
 		aux=aux->next;
 	}
-
+/*Listen for new TCP connection*/
 	listen(fdlisten, 5);
 /*Get time at beggining of the application*/
 	time1=time(NULL);
 	
 /*Start user interface*/
 	while(1){
+/*Get time at each iteration of the while loop*/	
 		time2=time(NULL);
+/*If more than r seconds passed re-register to identity server and reset time1*/		
 		if(time2-time1>r){
 			time1=time(NULL);
+/*Re-registering */
 			addrlen=sizeof(addr);
 			sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
 			ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
@@ -365,8 +379,7 @@ int main(int argc, char * argv[])
 			}
 		}
 		
-/*Set the file descriptors*/
-
+/*Set the file descriptors on readfds*/
 		FD_ZERO(&readfds);
 		FD_SET(0, &readfds);
 		FD_SET(fd2, &readfds);
@@ -376,7 +389,6 @@ int main(int argc, char * argv[])
 			FD_SET(aux->fd, &readfds);
 			aux=aux->next;
 		}
-
 /*Retrieve maximum fd*/
 		maxfd=fd2;
 		if(fdlisten>maxfd){
@@ -389,23 +401,25 @@ int main(int argc, char * argv[])
 			}
 			aux=aux->next;
 		}
-
-		
 /*Select function. Checks which file descriptor is active*/			
 		select(maxfd+2, &readfds, NULL, NULL, NULL);
 
-/*If msgserv is active read*/
+/*If any file descriptor of any msgserv connected to this server is active read it's message*/
 		aux=head;
 		while(aux!=NULL){
+/*Make sure we don't check our own fd*/
 			if (FD_ISSET(aux->fd, &readfds) && strcmp(aux->ip,ip)!=0 && strcmp(aux->name,name)!=0){
+/*Read message*/
 				memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 				useless=read(aux->fd, buffer6, 100);
 				if(useless==-1){
 					printf("Error read1\n");
 					exit(1);
 				}else{
+
 					token=strtok(buffer6, "\n");
 					if(token!=NULL){
+/*If SMESSAGES is received, receive the message table that follows*/
 						if(strcmp(token, "SMESSAGES")==0){
 							token=strtok(NULL, ";");
 							while(token!=NULL){
@@ -414,6 +428,7 @@ int main(int argc, char * argv[])
 								if(token==NULL){break;}
 								n_messages++;
 								printf("Recebido de msgserv: %d;%s\n",logic_time, token);
+/*Insert each message into the message vector*/
 								insertmessage(m_vector, token, logic_time, n_messages-1);
 								token=strtok(NULL, "\n");
 								token=strtok(NULL, ";");
@@ -427,7 +442,7 @@ int main(int argc, char * argv[])
 
 		}
 
-/*If listenfd is active connect to the new server*/
+/*If listenfd is active accept the connection to the new server*/
 		if(FD_ISSET(fdlisten, &readfds)){
 			
 			memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
@@ -449,9 +464,9 @@ int main(int argc, char * argv[])
 			
 			token=strtok(NULL, ";");
 			tpt_new_tcp=atoi(token);
-/*Insert server on list*/
+/*Insert new server on list*/
 			head=CreateInsertNode(name_new_tcp, ip_new_tcp, upt_new_tcp, newfd, tpt_new_tcp, head);
-
+/*If new servers also asks for n of this server messages, send the n messages to it*/
 			token=strtok(NULL,"\n");
 			if(token!=NULL){
 				if(strcmp(token, "SGET_MESSAGES")==0){
@@ -463,6 +478,7 @@ int main(int argc, char * argv[])
 						printf("A enviar para msgserv: %s\n", buffer6);
 						strcat(buffer5+10, buffer6);
 					}
+/*Sending the messages*/
 					useless=write(newfd, buffer5, 2048);
 					if(useless==-1){
 						printf("Error read3\n");
@@ -480,60 +496,63 @@ int main(int argc, char * argv[])
 				exit(1);
 			}
 			sscanf(buffer1,"%s", instruction);
+/*Case show_messages*/
 			if(strcmp(instruction, "show_messages")==0){					
     			for(i=0;i<n_messages;i++){
     				printf("%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
     			}
+/*Case show_servers*/
 			}else if(strcmp(instruction, "show_servers")==0){
 				addrlen=sizeof(addr);
+/*Send GET_SERVERS to identity servers*/
 				ret_identity2=sendto(fd,"GET_SERVERS",11,0,(struct sockaddr*)&addr,addrlen);
 				if(ret_identity2==-1){
 					printf("Error ret_identity2 get servers\n");
 					exit(1); 
 				}
 				memset((void*)&buffer2,(char)'\0',sizeof(buffer2));
+/*Receives servers information*/
 				nread=recvfrom(fd,buffer2,2048,0,(struct sockaddr*)&addr,&addrlen);
 				if(nread==-1){
 					printf("Error rcvfrom show_servers\n");
 					exit(1); 
 				}
-				printf("Identity server:\n");
+/*Prints out identity server list of servers and our list of servers (they can mismatch)*/
 				printf("%s\n",buffer2);
-				printf("Lista:\n");
-				printList(head);
-
+/*Case exit*/
 			}else if(strcmp(instruction, "exit")==0){
 					printf("Program exited successfully\n");
 					close(fd);
 					close(fd2);
 					freeList(head);
 					exit(0);
+/*Case join*/
 			}else if(strcmp(instruction, "join")==0){
 				addrlen=sizeof(addr);
+/*Re-registers on the identity server*/
 				sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
-			
 				ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
 				if(ret_identity1==-1){
 					printf("Error ret_identity join\n");
 					exit(1); 
 				}
 				time1=time(NULL);
-			}else if(strcmp(instruction, "\n")==0){
-				printf("Command not recognized\n");
 			}else{
 				printf("Command not recognized\n");
 			}
-/*If terminal file descriptor is active, read and choose what to do*/
+/*If rmb file descriptor is active, read and choose what to do*/
 		}else if(FD_ISSET(fd2, &readfds)!=0){
 			memset((void*)&buffer4,(int)'\0',sizeof(buffer4));
 			memset((void*)&protocol_message,(int)'\0',sizeof(protocol_message));
 			addrlen2=sizeof(addr2);
+/*Receive message*/
 			nread1=recvfrom(fd2,buffer4,2048,0,(struct sockaddr*)&addr2,&addrlen2);
 			if(nread1==-1){
 					printf("Error rcvfrom message\n");
 				exit(1);
 				}
 			token=strtok(buffer4, " ");
+/*Check type of message*/
 			if(strcmp(token, "PUBLISH")==0){
 				n_messages++;
 				logic_time++;
@@ -550,6 +569,7 @@ int main(int argc, char * argv[])
 /*Insert message read into the message vector m_vector*/
 				insertmessage(m_vector, protocol_message, logic_time, n_messages-1);
 				aux=head;
+/*Replicate new message throughout the msgservers*/
 				while(aux!=NULL){
 					if(strcmp(aux->ip,ip)!=0 && strcmp(aux->name,name)!=0){
 						memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
@@ -565,7 +585,8 @@ int main(int argc, char * argv[])
 						}
 					}
 					aux=aux->next;
-				}		
+				}
+/*If a rmb asks for n messages*/
     		}else if(strcmp(token, "GET_MESSAGES")==0){
     			token=strtok(NULL, "\n");
     			if (token==NULL)
@@ -573,6 +594,7 @@ int main(int argc, char * argv[])
     				break;    			
     			}
     			n_messages_to_send=atoi(token);
+/*If there are n messages available, send them, if there aren't, send those that the server has in storeage*/
     			if(n_messages_to_send>n_messages){
     				n_messages_to_send=n_messages;
     			}
@@ -585,6 +607,7 @@ int main(int argc, char * argv[])
 					printf("A enviar para rmb: %s\n", buffer6);
 					strcat(buffer5+9, buffer6);
 				}
+/*Send them the messages*/
 				send_m=sendto(fd2,buffer5, 251,0,(struct sockaddr*)&addr2,addrlen2);
 				if(send_m==-1){
 					printf("Error send_m\n");

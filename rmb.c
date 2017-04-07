@@ -1,3 +1,12 @@
+/**************************************************************************************************************/
+/*************************************************RCI Project**************************************************/
+/*RCI-Reliable Message Board												  Redes de Computadores e Internet*/
+/*João Alves 			Nº78181										  		          2nd Semester - 2016/2017*/
+/*Filipa Fernandes		Nº78383					         	  	   			        Instituto Superior Técnico*/ 
+/*                                                       											          */
+/**************************************************************************************************************/
+/* 						                             rmb.c 													  */
+/**************************************************************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -25,7 +34,7 @@ int main(int argc, char * argv[]){
 	
 
 
-
+/*Open UDP sockets for identity servers and msgservers*/
 
 	fdi=socket(AF_INET,SOCK_DGRAM,0);
 	fdm=socket(AF_INET,SOCK_DGRAM,0);
@@ -117,7 +126,7 @@ int main(int argc, char * argv[]){
 		}
 		sscanf(buffer1,"%s", instruction);
 /*Implementing the user's commands*/
-
+/*Case show_servers*/
 		if(strcmp(instruction, "show_servers")==0){
 			addrlen=sizeof(addr1);
 			ret_identity=sendto(fdi,"GET_SERVERS",256,0,(struct sockaddr*)&addr1,addrlen);
@@ -131,6 +140,7 @@ int main(int argc, char * argv[]){
 				exit(1);  
 			}
 			printf("%s\n",buffer2);
+/*Case publish*/
 		}else if(strcmp(instruction, "publish")==0){
 
 			for(i=0;i!=7;i++){
@@ -143,11 +153,13 @@ int main(int argc, char * argv[]){
 				printf("Error pub\n");
 				exit(1);
 			}
+/*Case exit*/
 		}else if(strcmp(instruction, "exit")==0){
 			close(fdi);
 			close(fdm);
 			printf("Application exited successfully\n");
 			exit(0);
+/*Case show_latest_messages_n*/
 		}else if(strcmp(instruction, "show_latest_messages")==0){
 			sscanf(buffer1+strlen(instruction), " %d", &n_show_messages_int);
 			
@@ -170,7 +182,7 @@ int main(int argc, char * argv[]){
 			printf("Command not recognized\n");
 		}
 	}
-
+/*Close fd for UDP connections*/
 close(fdi);
 close(fdm);
 exit(0);
