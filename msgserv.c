@@ -418,6 +418,7 @@ int main(int argc, char * argv[])
 					exit(1);
 				}else if(useless==0){
 					printf("End of TCP connection with %s\n", aux->name);
+					close(aux->fd);
 					head=removefromList(head, aux);
 					break;
 				}	
