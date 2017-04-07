@@ -7,6 +7,7 @@
 /**************************************************************************************************************/
 /* 						                             rmb.c 													  */
 /**************************************************************************************************************/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -18,10 +19,11 @@
 #include <unistd.h>
 #include <ctype.h>
 
+
 int main(int argc, char * argv[]){
 
 	
-	int fdi, fdm, i, port_id, siipi, ret, ret_identity, nread, pub, port, n_show_messages_int, get_m, n_read_m;
+	int fdi=0, fdm=0, i=0, port_id=0, siipi=0, ret=0, ret_identity=0, nread=0, pub=0, port=0, n_show_messages_int=0, get_m, n_read_m=0;
 	unsigned int addrlen;
 	struct sockaddr_in addr1, addr2;
 	char buffer1[2048],buffer2[2048], *b,*m, *e;
@@ -45,7 +47,7 @@ int main(int argc, char * argv[]){
 
 /*If input checks out, start to attribute default input arguments*/
 		
-	h=gethostbyname("ubuntu");		
+	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
 	if(h==NULL){
 		printf("Error getting siip\n");
 		exit(1);
@@ -99,6 +101,8 @@ int main(int argc, char * argv[]){
 	}
 	m=strchr(b+1,';');
 	e=strchr(m+1,';');
+	memset((void*)&ms_ip,(char)'\0',sizeof(ms_ip));
+	memset((void*)&ms_uport,(char)'\0',sizeof(ms_uport));
 
 	strncpy(ms_ip,b+1, m-b-1);
 	strncpy(ms_uport, m+1, e-m-1);
@@ -146,7 +150,8 @@ int main(int argc, char * argv[]){
 			for(i=0;i!=7;i++){
 				buffer1[i]=toupper(buffer1[i]);
 			}
-
+			addrlen=sizeof(addr2);
+			memset((void*)&message,(char)'\0',sizeof(message));
 			strcpy(message,buffer1);
 			pub=sendto(fdm,message,140,0,(struct sockaddr*)&addr2,addrlen);
 			if(pub==-1){

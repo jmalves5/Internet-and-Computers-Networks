@@ -39,6 +39,7 @@ typedef struct node {
    struct node *next;
 }node;
 
+/*Function that creates new link and inserts it on list*/
 node* CreateInsertNode(char name[40], char ip[40], int upt, int fd, int tpt, node* head){
   if(head==NULL){
  
@@ -69,7 +70,7 @@ node* CreateInsertNode(char name[40], char ip[40], int upt, int fd, int tpt, nod
   return head;
 }
 
-
+/*Function that prints server list*/
 void printList(node* head){
   node * aux=head;
   while(aux!=NULL){
@@ -81,6 +82,7 @@ void printList(node* head){
   }
 }
 
+/*Function that inserts message on message vector*/
 void insertmessage(struct svmessage* m_vector, char* message, int time, int n_messages){  
 	memset((void*)&m_vector[n_messages].string_message,(char)'\0',sizeof(m_vector[n_messages].string_message));
     strcpy(m_vector[n_messages].string_message, message);
@@ -88,14 +90,12 @@ void insertmessage(struct svmessage* m_vector, char* message, int time, int n_me
    
 }
 
-
-
-
+/*Function that initializes list*/
 node * initLinkedList(void){
   	return NULL;
 }
 
-
+/*Function that removes link from list*/
 node * removefromList(node* head, node* toremove){
 	node *aux=head;
 
@@ -117,6 +117,7 @@ node * removefromList(node* head, node* toremove){
  	}
 }
 
+/*Function that frees all links in list*/
 void freeList(node*head){
 	node*aux=head;
 	node*aux2=NULL;
@@ -197,7 +198,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("ubuntu");
+			h=gethostbyname("tejo.tecnico.ulisboa.pt");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -427,12 +428,14 @@ int main(int argc, char * argv[])
 								token=strtok(NULL, "\n");
 								if(token==NULL){break;}
 								n_messages++;
-								printf("Recebido de msgserv: %d;%s\n",logic_time, token);
+								printf("Received from msgserv: %d;%s\n",logic_time, token);
 /*Insert each message into the message vector*/
 								insertmessage(m_vector, token, logic_time, n_messages-1);
 								token=strtok(NULL, "\n");
 								token=strtok(NULL, ";");
 							}
+						}else{
+							printf("Wrong protocol message format!\n");
 						}
 					}
 				
@@ -472,10 +475,10 @@ int main(int argc, char * argv[])
 				if(strcmp(token, "SGET_MESSAGES")==0){
 					memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
 					sprintf(buffer5,"SMESSAGES\n");
-					for(i=0;i<n_messages;i++){
+					for(i=n_messages-1;i>=0;i--){
 						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 						sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
-						printf("A enviar para msgserv: %s\n", buffer6);
+						printf("Sending to msgserv: %s\n", buffer6);
 						strcat(buffer5+10, buffer6);
 					}
 /*Sending the messages*/
@@ -484,7 +487,9 @@ int main(int argc, char * argv[])
 						printf("Error read3\n");
 						exit(1);
 					}
-				}
+				}else{
+							printf("Wrong protocol message format!\n");
+						}
 			}
 		}
 
@@ -554,7 +559,6 @@ int main(int argc, char * argv[])
 			token=strtok(buffer4, " ");
 /*Check type of message*/
 			if(strcmp(token, "PUBLISH")==0){
-				n_messages++;
 				logic_time++;
 				offset=0;
 				token=strtok(NULL, " ");
@@ -565,9 +569,10 @@ int main(int argc, char * argv[])
 					offset+=len_token+1;
 					token=strtok(NULL, " ");
 				}
-				printf("Recebido do rmb: %d, %s\n",logic_time, protocol_message);
+				printf("Received from rmb: %d, %s\n",logic_time, protocol_message);
 /*Insert message read into the message vector m_vector*/
-				insertmessage(m_vector, protocol_message, logic_time, n_messages-1);
+				insertmessage(m_vector, protocol_message, logic_time, n_messages);
+				n_messages++;
 				aux=head;
 /*Replicate new message throughout the msgservers*/
 				while(aux!=NULL){
@@ -576,8 +581,9 @@ int main(int argc, char * argv[])
 						sprintf(buffer5,"SMESSAGES\n");
 						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 						sprintf(buffer6,"%d;%s\n",m_vector[n_messages-1].tmessage, m_vector[n_messages-1].string_message);
-						printf("A enviar para msgserv: %s\n", buffer6);
-						strcat(buffer5+10, buffer6);	
+			
+						printf("Sending to msgserv: %s\n", buffer6);
+						sprintf(buffer5+10, "%s", buffer6);	
 						useless=write(aux->fd, buffer5, 2048);
 						if(useless==-1){
 							printf("Error write4\n");
@@ -601,10 +607,10 @@ int main(int argc, char * argv[])
 
     			memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
 				sprintf(buffer5,"MESSAGES\n");
-				for(i=0;i<n_messages_to_send;i++){
+				for(i=n_messages-1;i>=n_messages-n_messages_to_send;i--){
 					memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 					sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
-					printf("A enviar para rmb: %s\n", buffer6);
+					printf("Sending to rmb: %s\n", buffer6);
 					strcat(buffer5+9, buffer6);
 				}
 /*Send them the messages*/
@@ -615,7 +621,9 @@ int main(int argc, char * argv[])
 				}
 
 
-    		}
+    		}else{
+				printf("Wrong protocol message format!\n");
+			}
 		}
 	}
 	
