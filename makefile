@@ -1,4 +1,4 @@
-CFLAGS= -Wall -ansi -O3 -g -D_BSD_SOURCE
+CFLAGS= -Wall -g -D_BSD_SOURCE
 
 all: msgserv rmb
 
