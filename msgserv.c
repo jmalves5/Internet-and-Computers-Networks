@@ -198,7 +198,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("tejo");
+			h=gethostbyname("ubuntu");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -301,7 +301,6 @@ int main(int argc, char * argv[])
 		token=strtok(NULL, "\n");
 
 /*Fill the List*/	
-		printf("%s\n",name_tcp );
 		head=CreateInsertNode(name_tcp, ip_tcp, upt_tcp, 0, tpt_tcp, head);
 
 	}	
@@ -405,7 +404,7 @@ int main(int argc, char * argv[])
 			aux=aux->next;
 		}
 /*Select function. Checks which file descriptor is active*/			
-		select(maxfd+2, &readfds, NULL, NULL, NULL);
+		select(maxfd+1, &readfds, NULL, NULL, NULL);
 
 /*If any file descriptor of any msgserv connected to this server is active read it's message*/
 		aux=head;
@@ -467,15 +466,28 @@ int main(int argc, char * argv[])
 				exit(1);
 			}
 			token=strtok(buffer5, ";");
+			if(token==NULL){
+				printf("Wrong protocol format from new server but TCP connection is still active\n");		
+			}
 			strcpy(name_new_tcp, token);
 
+
 			token=strtok(NULL, ";");
+			if(token==NULL){
+				printf("Wrong protocol format from new server but TCP connection is still active\n");	
+			}
 			strcpy(ip_new_tcp, token);
 
 			token=strtok(NULL, ";");
+			if(token==NULL){
+				printf("Wrong protocol format from new server but TCP connection is still active\n");	
+			}
 			upt_new_tcp=atoi(token);
 			
 			token=strtok(NULL, ";");
+			if(token==NULL){
+				printf("Wrong protocol format from new server but TCP connection is still active\n");	
+			}
 			tpt_new_tcp=atoi(token);
 /*Insert new server on list*/
 			head=CreateInsertNode(name_new_tcp, ip_new_tcp, upt_new_tcp, newfd, tpt_new_tcp, head);
@@ -498,8 +510,10 @@ int main(int argc, char * argv[])
 						exit(1);
 					}
 				}else{
-					printf("Wrong protocol message/format from new server!\n");
-					}
+					printf("Wrong protocol format from new server but TCP connection is still active\n");
+				}
+			}else{
+				printf("Wrong protocol format from new server but TCP connection is still active\n");
 			}
 		}
 
@@ -571,7 +585,7 @@ int main(int argc, char * argv[])
 				aux=head;
 /*Replicate new message throughout the msgservers*/
 				while(aux!=NULL){
-					if(strstr(aux->name,name)==NULL){
+					if(strcmp(aux->name,name)!=0){
 						memset((void*)&buffer5,(char)'\0',sizeof(buffer5));
 						sprintf(buffer5,"SMESSAGES\n");
 						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
