@@ -47,7 +47,7 @@ int main(int argc, char * argv[]){
 
 /*If input checks out, start to attribute default input arguments*/
 		
-	h=gethostbyname("ubuntu");		
+	h=gethostbyname("tejo.tecnico.ulisboa.pt");		
 	if(h==NULL){
 		printf("Error getting siip\n");
 		exit(1);

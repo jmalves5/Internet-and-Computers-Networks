@@ -142,7 +142,7 @@ int main(int argc, char * argv[])
 	char name_new_tcp[40], ip_new_tcp[40];
 	unsigned int upt, tpt, upt_tcp, tpt_tcp, upt_new_tcp, tpt_new_tcp;
 	time_t time1=0, time2=0;
-	int useless, fd, fd2,fdlisten, ret_identity1, ret_identity2, ret_terminal, nread=0, m=0, r;
+	int useless, fd, fd2,fdlisten, ret_identity1, ret_identity2, ret_terminal, nread=0, m=0, r, n_sent=0;
 	int port_id, siipi, i, maxfd, nread1=0, logic_time=0, n_messages=0, len_token, offset,newfd;
 	int n_messages_to_send, send_m;
 	unsigned int addrlen, addrlen2,clientlen;
@@ -198,7 +198,7 @@ int main(int argc, char * argv[])
 			upt = atoi(argv[6]);
 			tpt = atoi(argv[8]);
 			
-			h=gethostbyname("ubuntu");
+			h=gethostbyname("tejo.tecnico.ulisboa.pt");
 			
 			if(h==NULL){
 				printf("Error getting siip\n");
@@ -252,7 +252,7 @@ int main(int argc, char * argv[])
 /*Join*/
 	memset((void*)&buffer3,(int)'\0',sizeof(buffer3));
 	sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
-	ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,sizeof(addr));
+	ret_identity1=sendto(fd,buffer3,7+strlen(name)+strlen(ip)+3*sizeof(upt)+3*sizeof(tpt),0,(struct sockaddr*)&addr,sizeof(addr));
 	if(ret_identity1==-1){
 		printf("Error ret_identity1 join\n");
 		exit(1); 	
@@ -374,7 +374,7 @@ int main(int argc, char * argv[])
 /*Re-registering */
 			addrlen=sizeof(addr);
 			sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);					
-			ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+			ret_identity1=sendto(fd,buffer3,7+strlen(name)+strlen(ip)+3*sizeof(upt)+3*sizeof(tpt),0,(struct sockaddr*)&addr,addrlen);
 			if(ret_identity1==-1){
 				printf("Error ret_identity1 join\n");
 				exit(1); 	
@@ -417,17 +417,19 @@ int main(int argc, char * argv[])
 			if (FD_ISSET(aux->fd, &readfds) && strcmp(aux->name,name)!=0){
 /*Read message*/
 				memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
-				useless=read(aux->fd, buffer6, 100);
+				useless=read(aux->fd, buffer6, 2048);
 				if(useless==-1){
 					printf("Error read1\n");
 					exit(1);
 				}else if(useless==0){
 					printf("End of TCP connection with %s\n", aux->name);
 					head=removefromList(head, aux);
+
 					break;
 				}	
 
 				token=strtok(buffer6, "\n");
+
 				if(token!=NULL){
 /*If SMESSAGES is received, receive the message table that follows*/
 					if(strcmp(token, "SMESSAGES")==0){
@@ -465,11 +467,13 @@ int main(int argc, char * argv[])
 				printf("Error read2\n");
 				exit(1);
 			}
+
 			token=strtok(buffer5, ";");
 			if(token==NULL){
 				printf("Wrong protocol format from new server but TCP connection is still active\n");		
 			}
 			strcpy(name_new_tcp, token);
+			printf("TCP connection with %s is up\n",name_new_tcp);
 
 
 			token=strtok(NULL, ";");
@@ -500,11 +504,12 @@ int main(int argc, char * argv[])
 					for(i=0;i<n_messages;i++){
 						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 						sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
-						printf("Sending to msgserv: %s\n", buffer6);
+						printf("Sending to msgserv: %d,%s\n", m_vector[i].tmessage, m_vector[i].string_message);
+						strcat(buffer5+10, buffer6);
 					}
-					strcat(buffer5+10, buffer6);
+					
 /*Sending the messages*/
-					useless=write(newfd, buffer5, 2048);
+					useless=write(newfd, buffer5, strlen(buffer5));
 					if(useless==-1){
 						printf("Error read3\n");
 						exit(1);
@@ -545,7 +550,7 @@ int main(int argc, char * argv[])
 				addrlen=sizeof(addr);
 /*Re-registers on the identity server*/
 				sprintf(buffer3, "REG %s;%s;%d;%d", name, ip, upt, tpt);
-				ret_identity1=sendto(fd,buffer3,2048,0,(struct sockaddr*)&addr,addrlen);
+				ret_identity1=sendto(fd,buffer3,7+strlen(name)+strlen(ip)+3*sizeof(upt)+3*sizeof(tpt),0,(struct sockaddr*)&addr,addrlen);
 				if(ret_identity1==-1){
 					printf("Error ret_identity join\n");
 					exit(1); 
@@ -593,7 +598,7 @@ int main(int argc, char * argv[])
 			
 						printf("Sending to msgserv: %s\n", buffer6);
 						sprintf(buffer5+10, "%s", buffer6);	
-						useless=write(aux->fd, buffer5, 2048);
+						useless=write(aux->fd, buffer5, strlen(buffer5));
 						if(useless==-1){
 							printf("Error write4\n");
 							exit(1);
@@ -616,11 +621,12 @@ int main(int argc, char * argv[])
 					for(i=n_messages-n_messages_to_send;i<n_messages;i++){
 						memset((void*)&buffer6,(char)'\0',sizeof(buffer6));
 						sprintf(buffer6,"%d;%s\n",m_vector[i].tmessage, m_vector[i].string_message);
+						n_sent+=2+sizeof(m_vector[i].tmessage)+strlen(m_vector[i].string_message);
 						printf("Sending to rmb: %s\n", buffer6);
 						strcat(buffer5+9, buffer6);
 					}
 /*Send them the messages*/
-					send_m=sendto(fd2,buffer5, 251,0,(struct sockaddr*)&addr2,addrlen2);
+					send_m=sendto(fd2,buffer5, n_sent,0,(struct sockaddr*)&addr2,addrlen2);
 					if(send_m==-1){
 						printf("Error send_m\n");
 						exit(1);  
