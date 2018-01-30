@@ -1,5 +1,5 @@
 # RCI
-RCI Project
+Internet and Computer Networks Class' Project
 Reliable Message Board.
-Sistema de comunicação (msgserv.c) com o qual utilizadores(rmb.c) publicam e acedem a mensagens de texto, interagindo através delas.
+Message server (msgserv.c) with whom clients(rmb.c) can publish and access text messages, interacting through them.
 
